@@ -1,0 +1,4 @@
+# ignore python byte code files
+*.exe
+*.dll
+*.dat
