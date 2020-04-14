@@ -9,7 +9,7 @@ The volumetric image serves as ground truth volume image (target image), the his
 
 ### 2. Installations
 
-A few pieces of software recommended/necessary. Here's a list:
+A few pieces of software are recommended/necessary for the whole process. Here's a list:
 * MITK :
 This free software is able to create masks from the a volumetric image (e.g. MRI, CT). You have to manually contour the CT images before starting with the registration. [Download link](www.mitk.org/wiki/Downloads)
 
