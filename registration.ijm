@@ -2,10 +2,13 @@
 //output is the Damage_Stack_int which includes all registered and interpolated dapi images
 
 //////////////////////////////////INPUT PARAMETERS///////////////////////////////
-root = "E:\\Data_for_quarantine\\Registration\\Data\\P1_H_C3H_M008\\";
-coronal_brain = "\\Brain.nrrd";
-root2 = "E:\\Data_for_quarantine\\Registration\\script_final\\";
+root = "C:\\Users\\Acer\\Documents\\oncoray\\daten_theresa\\";
+coronal_brain = "Brain.nrrd";
+root2 = "C:\\test\\";
 /////////////////////////////////////////////////////////////////////////////////
+
+
+
 
 
 
@@ -68,8 +71,8 @@ run("Set Measurements...", "area center area_fraction display redirect=None deci
 
 
 
-// Registration with "elastix" - one saves for every CT mask - DAPI mask pair a transformation file 
-for (i = 0; i < lengthOf(Filelist); i++) {		// loop over all DAPI masks
+// Registration with "elastix" - one saves for every ctmask-dapimask-pair a transformation file 
+for (i = 0; i < lengthOf(Filelist); i++) {		// loop over all dapimasks
 
 	// Process Histo mask
 	if(!endsWith(Filelist[i], "_DAPImask.tif")){
@@ -138,8 +141,14 @@ for (i = 0; i < lengthOf(Filelist); i++) {		// loop over all DAPI masks
 	"-out "+ Outdir      + " "+									//set output directory
 	"-p " + root2 +"elastix_parameters.txt");					//directory of elastix parameters used for the transformation
 
+
+	//get the name of the current dapimask file to set the name of the trafo file
+	indexdapimask = indexOf(Filelist[i], "DAPImask");								//Returns the index within first element of filelist of the first occurrence of "scene"
+	Nametrafo = substring(Filelist[i], 0, indexdapimask);				//pick string including the number
+	
+	
 	//rename and delete unnecessary files
-	File.rename(dir_trafo+"TransformParameters.0.txt", dir_trafo +"trafo" + i + ".txt");	//rename trafo files
+	File.rename(dir_trafo+"TransformParameters.0.txt", dir_trafo + Nametrafo + "trafo" + ".txt");	//rename trafo files
     File.delete(dir_trafo+"IterationInfo.0.R0.txt");			//delete saved transformation process files
     File.delete(dir_trafo+"IterationInfo.0.R1.txt");			//delete saved transformation process files
     File.delete(dir_trafo+"IterationInfo.0.R2.txt");			//delete saved transformation process files
@@ -190,11 +199,15 @@ for (i = 0; i < lengthOf(Filelist); i++) {
 
 	// Calculate according (to current dapi image) CT slice location
 	dist_from_top = parseName(damage_ratio_map);
+
+	//get the name of the current ratio file to get the name of the trafo file
+	indexratio = indexOf(Filelist[i], "ratio");					//Returns the index within first element of filelist of the first occurrence of "scene"
+	Nametrafo = substring(Filelist[i], 0, indexratio);				//pick string including the number
 	
 	//transform dapi image with received transformation file
 	Outdir=dir_trafo;											//transformated dapi image output file
 	MovingImage=dir_trafo + damage_ratio_map + i + ".tif";		//moving image=dapi image
-	trafo_file = "trafo" + i+1 + ".txt"; 						//set transformation file for right dapi image
+	trafo_file = Nametrafo + "trafo" + ".txt"; 						//set transformation file for right dapi image
 	
 	//execute transformix (transformation program-included in elastix)
 	exec(elastix + "\\transformix.exe "+						//transformix installation directory
@@ -218,9 +231,6 @@ for (i = 0; i < lengthOf(Filelist); i++) {
 	File.delete(dir_trafo+"result.raw");		//delete result file
     File.delete(MovingImage);					//delete moving image file
 
-    indexscene = indexOf(Filelist[i], "Scene");								//Returns the index within first element of filelist of the first occurrence of "scene"
-	Name = substring(Filelist[i], indexscene-5, indexscene+7);				//pick string including the number
-    File.rename(dir_trafo +"trafo" + i-2 + ".txt", dir_trafo + "trafo_" + Name + ".txt");	//rename trafo files
 	
 }
 close(CT_mask);		//close ctmask
@@ -425,7 +435,7 @@ for (i = 1; i < nSlices+1;) {		//loop over the entries of the array
 		top_slice = i+1;	
 		break;
 		}
-}
+	}
 
 return top_slice;			//return value
 }
