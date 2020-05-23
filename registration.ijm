@@ -2,12 +2,17 @@
 //output is the Damage_Stack_int which includes all registered and interpolated dapi images
 
 //////////////////////////////////INPUT PARAMETERS///////////////////////////////
-root = "E:\\Data_for_quarantine\\Registration\\Data\\P1_H_C3H_M008\\";
+//root = "E:\\Data_for_quarantine\\Registration\\Data\\P1_H_C3H_M008\\";
 coronal_brain = "\\Brain.nrrd";
-root2 = "E:\\Data_for_quarantine\\Registration\\script_final\\";
+//root2 = "E:\\Data_for_quarantine\\Registration\\script_final\\";
 /////////////////////////////////////////////////////////////////////////////////
 
+#@ String (label="Please specify the location of root") root
+#@ String (label="Please specify the location of root2") root2
 
+
+root = root + "\\"
+root2 = root2 + "\\"
 
 //clean up
 close("*");	
