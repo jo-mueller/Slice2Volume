@@ -2,27 +2,10 @@
 //output is the Damage_Stack_int which includes all registered and interpolated dapi images
 
 //////////////////////////////////INPUT PARAMETERS///////////////////////////////
-<<<<<<< HEAD
-<<<<<<< HEAD
 root = "C:\\Users\\Acer\\Documents\\oncoray\\daten_theresa";
 coronal_brain = "Brain.nrrd";
 root2 = "C:\\test";
-=======
-root = "C:\\Users\\Acer\\Documents\\oncoray\\daten_theresa\\";
-coronal_brain = "Brain.nrrd";
-root2 = "C:\\test\\";
->>>>>>> origin/issue12
-=======
-root = "C:\\Users\\Acer\\Documents\\oncoray\\daten_theresa\\";
-coronal_brain = "Brain.nrrd";
-root2 = "C:\\test\\";
->>>>>>> origin/issue6
 /////////////////////////////////////////////////////////////////////////////////
-
-
-
-
-
 
 //clean up
 close("*");	
@@ -35,11 +18,13 @@ Damage_Stack_int = "Interpolated_Damage_Stack";
 CT_slice_mask = "CT_slice_mask";
 
 // settings
+// this should be set in GUI
 d_slice = 150.0; //histo slice distance (microns) between two dapi slices
 d_CT    = 100.0; // CT slice distance (microns)
 shift = 4; 		 //shifts the whole dapi stack x slices   
 
 // File definitions 
+// this should be set in GUI, too
 dir_gH2AX = root + "\\gH2AX\\";
 dir_trafo = root + "\\trafo\\";
 elastix = root2 + "\\elastix-4.9.0-win64";
@@ -255,15 +240,12 @@ for (i = 0; i < lengthOf(Filelist); i++) {
 	File.delete(dir_trafo+"result.raw");		//delete result file
     File.delete(MovingImage);					//delete moving image file
 
-<<<<<<< HEAD
     indexscene = indexOf(Filelist[i], "Scene");								//Returns the index within first element of filelist of the first occurrence of "scene"
 	Name = substring(Filelist[i], indexscene-5, indexscene+7);				//pick string including the number
     File.rename(dir_trafo +"trafo" + i-2 + ".txt", dir_trafo + "trafo_" + Name + ".txt");	//rename trafo files
 
 	progress(k);		// update the progress bar
-	k += iteration;		// increase counter by one    
-=======
->>>>>>> origin/issue6
+	k += iteration;		// increase counter by one
 	
 }
 close(CT_mask);		//close ctmask
@@ -378,153 +360,144 @@ function parseName(string){
 
 
 
-
 function reslice(mask){
-//this script reslices all coronal brain-mask-slices (acquired from MITK software) 
-//into axial brain-mask-slices (from top to bottom)
-
-//open the file
-open(mask);
-
-//reslice coronal into axial (output=sclice distance in microns, start with top slice)
-run("Reslice [/]...", "output=100 start=Top avoid interpolation");
-
-//close the coronal mask
-name = split(mask, "\\");			//split the root
-name = name[name.length-1];			//pick the file name of the root
-close(name);						//close the mask
+	//this script reslices all coronal brain-mask-slices (acquired from MITK software) 
+	//into axial brain-mask-slices (from top to bottom)
+	
+	//open the file
+	open(mask);
+	
+	//reslice coronal into axial (output=sclice distance in microns, start with top slice)
+	run("Reslice [/]...", "output=100 start=Top avoid interpolation");
+	
+	//close the coronal mask
+	name = split(mask, "\\");			//split the root
+	name = name[name.length-1];			//pick the file name of the root
+	close(name);						//close the mask
 }
 
 
 
 
 function StackMaskin(root){
-//this script browses a list of ratio maps of the brain and 
-//extracts a external contour (=masks) for each slice
-
-//Returns an array containing the names of the files in the folder.
-Filelist = getFileList(root);
-
-//loop over all images
-for (i = 0; i < lengthOf(Filelist); i++) {			
-	//pick only the files which end with map.tif
-	if(endsWith(Filelist[i], "ratio.tif")){			
-		continue;
-	}
-	if(endsWith(Filelist[i], "_DAPImask.tif")){
-		continue;
-	}
+	//this script browses a list of ratio maps of the brain and 
+	//extracts a external contour (=masks) for each slice
 	
-	// Open maps
-	open(root + Filelist[i]);
-	name = File.nameWithoutExtension;				//name with extension removed.
-	index = indexOf(name, "_map"); 					//Returns the index within current element of the first occurrence of "_map"
-	mask = substring(name, 0, index) + "_DAPImask";	//define mask variable
-	rename(name);									//Changes the title of the active image
-
-	// Copy DAPI map
-	setSlice(4);				//Displays the 4th slice of the active stack.
-	run("Duplicate...", " ");	//Creates a new window containing a copy of the active image
-	rename(mask);				//rename duplicated image
-	close(name);				//close original image
-
-	// Create Mask from DAPI image
-	selectWindow(mask);			//Activates the window with the title "mask"
-	setThreshold(4, 1e30);		//Sets the lower and upper threshold levels of image 
-	run("Convert to Mask");		//Converts an image to black and white.
-
-	// Postprocess
-	run("Fill Holes");			//fills holes in objects by filling the background
-	//Adds/removes pixels to the edges of objects in a binary image->makes image smoother
-	run("Dilate");
-	run("Dilate");
-	run("Dilate");
-	run("Dilate");
-	run("Erode");
-	run("Erode");
-	run("Erode");
-	run("Erode");
+	//Returns an array containing the names of the files in the folder.
+	Filelist = getFileList(root);
 	
-	run("Fill Holes");					//fill holes
-	run("Rotate 90 Degrees Left");		//rotates image by 90 degrees
-	saveAs(".tiff", root + mask);		//saves mask
-	close("*");							//close all open images
+	//loop over all images
+	for (i = 0; i < lengthOf(Filelist); i++) {			
+		//pick only the files which end with map.tif
+		if(endsWith(Filelist[i], "ratio.tif")){			
+			continue;
+		}
+		if(endsWith(Filelist[i], "_DAPImask.tif")){
+			continue;
+		}
+		
+		// Open maps
+		open(root + Filelist[i]);
+		name = File.nameWithoutExtension;				//name with extension removed.
+		index = indexOf(name, "_map"); 					//Returns the index within current element of the first occurrence of "_map"
+		mask = substring(name, 0, index) + "_DAPImask";	//define mask variable
+		rename(name);									//Changes the title of the active image
+	
+		// Copy DAPI map
+		setSlice(4);				//Displays the 4th slice of the active stack.
+		run("Duplicate...", " ");	//Creates a new window containing a copy of the active image
+		rename(mask);				//rename duplicated image
+		close(name);				//close original image
+	
+		// Create Mask from DAPI image
+		selectWindow(mask);			//Activates the window with the title "mask"
+		setThreshold(4, 1e30);		//Sets the lower and upper threshold levels of image 
+		run("Convert to Mask");		//Converts an image to black and white.
+	
+		// Postprocess
+		run("Fill Holes");			//fills holes in objects by filling the background
+		//Adds/removes pixels to the edges of objects in a binary image->makes image smoother
+		run("Dilate");
+		run("Dilate");
+		run("Dilate");
+		run("Dilate");
+		run("Erode");
+		run("Erode");
+		run("Erode");
+		run("Erode");
+		
+		run("Fill Holes");					//fill holes
+		run("Rotate 90 Degrees Left");		//rotates image by 90 degrees
+		saveAs(".tiff", root + mask);		//saves mask
+		close("*");							//close all open images
 	}
 }
 
 
-
-
 function top_layer(mask){
-//returns the number of the top slice of a stack which is not black
-
-//array of the sum of all pixel values of one image for the whole stack 
-sumpixval = newArray(nSlices);		//create array with length = nSlices
-
-//fill the array-loop over all slices
-for (i = 1; i < nSlices+1;) {			
-		
-	setSlice(i);																//set slice i
-	run("Set Measurements...", "integrated density redirect=None decimal=2");	//set measurements
-	run("Measure");																//run measure
-	sumpixval[i-1] = getResult("RawIntDen", nResults -1);						//sum of all pixelvalues for current image
-	i=i+1; 																		//increase i by one
-	}
-
-//get the top_slice by looking at nonzero elements of the array
-for (i = 1; i < nSlices+1;) {		//loop over the entries of the array
-
-	if(sumpixval[i] == 0){			//go to next entry if value is zero
-		i=i+1;	
-		}
-	else {							//get slice number if value is nonzero 
+	//returns the number of the top slice of a stack which is not black
+	
+	//array of the sum of all pixel values of one image for the whole stack 
+	sumpixval = newArray(nSlices);		//create array with length = nSlices
+	
+	//fill the array-loop over all slices
+	for (i = 1; i < nSlices+1;) {			
 			
-		top_slice = i+1;	
-		break;
+		setSlice(i);																//set slice i
+		run("Set Measurements...", "integrated density redirect=None decimal=2");	//set measurements
+		run("Measure");																//run measure
+		sumpixval[i-1] = getResult("RawIntDen", nResults -1);						//sum of all pixelvalues for current image
+		i=i+1; 																		//increase i by one
+	}
+	
+	//get the top_slice by looking at nonzero elements of the array
+	for (i = 1; i < nSlices+1;) {		//loop over the entries of the array
+	
+		if(sumpixval[i] == 0){			//go to next entry if value is zero
+			i=i+1;	
+			}
+		else {						//get slice number if value is nonzero 
+				
+			top_slice = i+1;	
+			break;
 		}
 	}
-
-return top_slice;			//return value
+	return top_slice;			//return value
 }
 
 
 
 
 function bottom_layer(mask){
-//returns the number of the bottom slice of a stack which is not black
-
-//array of the sum of all pixel values of one image for the whole stack 
-sumpixval = newArray(nSlices);		//create array with length = nSlices
-
-//fill the array-loop over all slices
-for (i = 1; i < nSlices+1;) {			
-		
-	setSlice(i);																//set slice i
-	run("Set Measurements...", "integrated density redirect=None decimal=2");	//set measurements
-	run("Measure");																//run measure
-	sumpixval[i-1] = getResult("RawIntDen", nResults -1);						//sum of all pixelvalues for current image
-	i=i+1; 																		//increase i by one
-	}
-
-//get the bottom_slice by first reversing the array and then looking at nonzero elements of the array
-sumpixval = Array.reverse(sumpixval)		//reverse array
-for (i = 1; i < nSlices+1;) {				//loop over the entries of the array
-
-	if(sumpixval[i] == 0){					//go to next entry if value is zero
-			i=i+1;	
-		}
-	else {									//get slice number if value is nonzero 
+	//returns the number of the bottom slice of a stack which is not black
+	
+	//array of the sum of all pixel values of one image for the whole stack 
+	sumpixval = newArray(nSlices);		//create array with length = nSlices
+	
+	//fill the array-loop over all slices
+	for (i = 1; i < nSlices+1;) {		
 			
-		bottom_slice = nSlices - i;	
-		break;
-		}
+		setSlice(i);																//set slice i
+		run("Set Measurements...", "integrated density redirect=None decimal=2");	//set measurements
+		run("Measure");																//run measure
+		sumpixval[i-1] = getResult("RawIntDen", nResults -1);						//sum of all pixelvalues for current image
+		i=i+1; 																		//increase i by one
 	}
 
-return bottom_slice;				//return value
-<<<<<<< HEAD
-<<<<<<< HEAD
-}
-=======
+	//get the bottom_slice by first reversing the array and then looking at nonzero elements of the array
+	sumpixval = Array.reverse(sumpixval)		//reverse array
+	for (i = 1; i < nSlices+1;) {				//loop over the entries of the array
+	
+		if(sumpixval[i] == 0){					//go to next entry if value is zero
+				i=i+1;	
+			}
+		else {									//get slice number if value is nonzero 
+				
+			bottom_slice = nSlices - i;	
+			break;
+			}
+		}
+	return bottom_slice;				//return value
 }
 
 
@@ -545,8 +518,4 @@ function getBar(p1, p2) {
     if (index < 1) index = 1;
     if (index > N - 1) index = N - 1;
     return substring(bar2, 0, index) + substring(bar1, index + 1, N);	// return the bar
-	}
->>>>>>> origin/issue12
-=======
 }
->>>>>>> origin/issue6
