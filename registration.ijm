@@ -2,9 +2,15 @@
 //output is the Damage_Stack_int which includes all registered and interpolated dapi images
 
 //////////////////////////////////INPUT PARAMETERS///////////////////////////////
+<<<<<<< HEAD
 root = "C:\\Users\\Acer\\Documents\\oncoray\\daten_theresa";
 coronal_brain = "Brain.nrrd";
 root2 = "C:\\test";
+=======
+root = "C:\\Users\\Acer\\Documents\\oncoray\\daten_theresa\\";
+coronal_brain = "Brain.nrrd";
+root2 = "C:\\test\\";
+>>>>>>> origin/issue12
 /////////////////////////////////////////////////////////////////////////////////
 
 
@@ -64,6 +70,15 @@ Y_displacement = newArray(0);
 
 // set what you want to measure if you  run(measure)
 run("Set Measurements...", "area center area_fraction display redirect=None decimal=2");
+
+
+// create a progress bar during the processing
+title = "[Progress]";														// title of the progress window
+run("Text Window...", "name="+ title +" width=50 height=5 monospaced");		// create a window for the progress bar
+selectWindow("Progress");													//
+setLocation(0, 0); 															// set location of the window
+iteration = 100 / (2 * lengthOf(Filelist) / 3 + n - 1)						// calculate the iteration steps of the progress
+k = 0;																		// set counter k to zero
 
 
 
@@ -148,6 +163,9 @@ for (i = 0; i < lengthOf(Filelist); i++) {		// loop over all DAPI masks
 
 	close(CT_slice_mask + i+ ".tif");							//close ctmask
 	close(DAPImask+i+".tif");									//close dapimask
+
+	progress(k);		// update the progress bar
+	k += iteration;		// increase counter by one
 }
 
 
@@ -221,6 +239,9 @@ for (i = 0; i < lengthOf(Filelist); i++) {
     indexscene = indexOf(Filelist[i], "Scene");								//Returns the index within first element of filelist of the first occurrence of "scene"
 	Name = substring(Filelist[i], indexscene-5, indexscene+7);				//pick string including the number
     File.rename(dir_trafo +"trafo" + i-2 + ".txt", dir_trafo + "trafo_" + Name + ".txt");	//rename trafo files
+
+	progress(k);		// update the progress bar
+	k += iteration;		// increase counter by one    
 	
 }
 close(CT_mask);		//close ctmask
@@ -252,10 +273,14 @@ for (i = 1; i < nSlices+1; i++) {
 
 	//consider/interpolate only slices between bottom and top mask
 	if (i<=mask_top){
+		progress(k);		// update the progress bar
+		k += iteration;		// increase counter by one
 		continue;
 	}
 
 	if (i>=mask_bottom){
+		progress(k);		// update the progress bar
+		k += iteration;		// increase counter by one
 		continue;
 	}
 
@@ -293,7 +318,17 @@ for (i = 1; i < nSlices+1; i++) {
 		close("c");     					//close the interpolated slice
 		close("Damage_stack");				//close the damage_stack
 	}
+	progress(k);		// update the progress bar
+	k += iteration;		// increase counter by one
 }
+//close unnecessary windows	
+selectWindow("Log");
+run("Close"); 
+selectWindow("Results");
+run("Close"); 
+wait(5000);
+selectWindow("Progress");
+run("Close"); 
 
 
 
@@ -464,4 +499,28 @@ for (i = 1; i < nSlices+1;) {				//loop over the entries of the array
 	}
 
 return bottom_slice;				//return value
+<<<<<<< HEAD
 }
+=======
+}
+
+
+function progress(k) {
+	//function which updates the progress bar
+	
+	print(title, "\\Update:" + k + "/" + 100 + " (" + k + "%)\n" + getBar(k, 100));	// Update the progress bar
+	}
+
+
+function getBar(p1, p2) {
+	// function which creates the progress  bar
+	
+    N = 20;		// number of progress bar intervals
+    bar1 = "--------------------";
+    bar2 = "********************";
+    index = round(N * (p1 / p2));		// calculation when a progress asterisk (*) should be drawn
+    if (index < 1) index = 1;
+    if (index > N - 1) index = N - 1;
+    return substring(bar2, 0, index) + substring(bar1, index + 1, N);	// return the bar
+	}
+>>>>>>> origin/issue12
