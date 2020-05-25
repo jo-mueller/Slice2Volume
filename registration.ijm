@@ -2,9 +2,9 @@
 //output is the Damage_Stack_int which includes all registered and interpolated dapi images
 
 //////////////////////////////////INPUT PARAMETERS///////////////////////////////
-root = "E:\\Data_for_quarantine\\Registration\\Data\\P1_H_C3H_M008\\";
-coronal_brain = "\\Brain.nrrd";
-root2 = "E:\\Data_for_quarantine\\Registration\\script_final\\";
+root = "C:\\Users\\Acer\\Documents\\oncoray\\daten_theresa";
+coronal_brain = "Brain.nrrd";
+root2 = "C:\\test";
 /////////////////////////////////////////////////////////////////////////////////
 
 
@@ -25,9 +25,9 @@ d_CT    = 100.0; // CT slice distance (microns)
 shift = 4; 		 //shifts the whole dapi stack x slices   
 
 // File definitions 
-dir_gH2AX = root + "gH2AX\\";
-dir_trafo = root + "trafo\\";
-elastix = root2 + "elastix-4.9.0-win64";
+dir_gH2AX = root + "\\gH2AX\\";
+dir_trafo = root + "\\trafo\\";
+elastix = root2 + "\\elastix-4.9.0-win64";
 
 
 //run "gH2AX_StackMaskin.ijm" script which creates the dapi image masks in the "gH2AX" folder
@@ -37,7 +37,7 @@ StackMaskin(dir_gH2AX);
 Filelist = getFileList(dir_gH2AX);
 
 // Open CT mask (with mitk produced) which is resliced in the axial plane due to the "call_reslice" script 
-mitk_mask = root + coronal_brain
+mitk_mask = root + "\\" + coronal_brain
 //reslice = root + "call_reslice.ijm" 	
 //runMacro(reslice, mitk_mask);
 reslice(mitk_mask);
@@ -136,7 +136,7 @@ for (i = 0; i < lengthOf(Filelist); i++) {		// loop over all DAPI masks
 	"-f " +  FixedImage  + " "+									//set fixed image
 	"-m " +  MovingImage + " "+									//set moving image
 	"-out "+ Outdir      + " "+									//set output directory
-	"-p " + root2 +"elastix_parameters.txt");					//directory of elastix parameters used for the transformation
+	"-p " + root2 +"\\elastix_parameters.txt");					//directory of elastix parameters used for the transformation
 
 	//rename and delete unnecessary files
 	File.rename(dir_trafo+"TransformParameters.0.txt", dir_trafo +"trafo" + i + ".txt");	//rename trafo files
