@@ -10,6 +10,14 @@ coronal_brain = "\\Brain.nrrd";
 #@ String (label="Please specify the location of root") root
 #@ String (label="Please specify the location of root2") root2
 
+#@ String (label="Please specify the location of your gH2AX folder in relation to root") gH2AX
+#@ String (label="Please specify the location of your trafo folder in relation to root") trafo
+#@ String (label="Please specify the location of your elastix installation in relation to root") elastix_dir
+
+#@ Integer (label="Please specify the histo slice distance (microns) between two dapi slices") d_slice
+#@ Integer (label="Please specify the CT slice distance (microns)") d_CT
+#@ Integer (label="shifts the whole dapi stack x slices x=") shift
+
 
 root = root + "\\"
 root2 = root2 + "\\"
@@ -25,14 +33,15 @@ Damage_Stack_int = "Interpolated_Damage_Stack";
 CT_slice_mask = "CT_slice_mask";
 
 // settings
-d_slice = 150.0; //histo slice distance (microns) between two dapi slices
-d_CT    = 100.0; // CT slice distance (microns)
-shift = 4; 		 //shifts the whole dapi stack x slices   
+//d_slice = 150.0; //histo slice distance (microns) between two dapi slices
+//d_CT    = 100.0; // CT slice distance (microns)
+//shift = 4; 		 //shifts the whole dapi stack x slices   
 
 // File definitions 
-dir_gH2AX = root + "gH2AX\\";
-dir_trafo = root + "trafo\\";
-elastix = root2 + "elastix-4.9.0-win64";
+dir_gH2AX = root + gH2AX + "\\";
+dir_trafo = root + trafo + "\\";
+elastix = root2 + elastix_dir
+//elastix = root2 + "elastix-4.9.0-win64";
 
 
 //run "gH2AX_StackMaskin.ijm" script which creates the dapi image masks in the "gH2AX" folder
