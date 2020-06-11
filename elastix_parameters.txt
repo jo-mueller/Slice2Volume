@@ -1,27 +1,44 @@
+// Registration type and runtime parameters
 (Transform "SimilarityTransform")
-(MaximumNumberOfIterations 2000)
+(MaximumNumberOfIterations 1000)
 (ImagePyramidSchedule 10 10 10)
 (NumberOfSpatialSamples 10000)
 (FinalGridSpacingInVoxels 50 50 50 )
 (Registration "MultiResolutionRegistration")
 (CheckNumberOfSamples "false" )
-(NumberOfResolutions 2)
+(NumberOfResolutions 1)
+
+// Generation of smoothed representation of input images?
 (FixedImagePyramid "FixedSmoothingImagePyramid" )
 (MovingImagePyramid "MovingSmoothingImagePyramid" )
+
+// Initial transformation
 (AutomaticTransformInitialization "true")
 (AutomaticTransformInitializationMethod "CenterOfGravity")
+
+// How to spread the sample points in the images
 (ImageSampler "Random" )
 (NewSamplesEveryIteration "true")
 (ResultImagePixelType "float")
 (DefaultPixelValue 0)
 (Optimizer "AdaptiveStochasticGradientDescent")
+
+// Control output during registration. 
+// Not needed if you're only interested in the result
 (WriteTransformParametersEachIteration "false")
 (WriteTransformParametersEachResolution "false")
 (WriteResultImageAfterEachResolution "false")
 (WritePyramidImagesAfterEachResolution "false")
+
+// Pixel types of output image data.
+// Set to float if your input data are floats
+// Will lead to weird output if you co-align unsigned int, but transform float images
 (FixedInternalImagePixelType "float")
 (MovingInternalImagePixelType "float")
 (UseDirectionCosines "false")
+
+// About interpolation of involved images.
+// Set ResampleInterpolator to NearestNeighbour for Atlas registration 
 (Interpolator "LinearInterpolator" )
 (ResampleInterpolator "FinalLinearInterpolator")
 (AutomaticParameterEstimation "true")

@@ -2,11 +2,10 @@
 //output is the Damage_Stack_int which includes all registered and interpolated dapi images
 
 //////////////////////////////////INPUT PARAMETERS///////////////////////////////
-root = "C:\\Users\\Acer\\Documents\\oncoray\\daten_theresa";
-coronal_brain = "Brain.nrrd";
-root2 = "C:\\test";
+root = "D:/Documents/Promotion/Projects/Slice2Volume/Data/Daten/";
+coronal_brain = "Brain_atlas.nrrd";
+root2 = "D:/Documents/Promotion/Projects/Slice2Volume/Code/";
 /////////////////////////////////////////////////////////////////////////////////
-
 
 
 //clean up
@@ -22,12 +21,12 @@ CT_slice_mask = "CT_slice_mask";
 //settings
 d_slice = 150.0; //histo slice distance (microns) between two dapi slices
 d_CT = 100.0; // CT slice distance (microns)
-shift = 4; 	 //shifts the whole dapi stack x slices   
+shift = 2; 	 //shifts the whole dapi stack x slices   
 
 //File definitions 
-dir_gH2AX = root + "\\gH2AX\\";
-dir_trafo = root + "\\trafo\\";
-elastix = root2 + "\\elastix-4.9.0-win64";
+dir_gH2AX = root + "/gH2AX/";
+dir_trafo = root + "/trafo/";
+elastix = root2 + "/elastix-4.9.0-win64";
 
 
 
@@ -78,6 +77,19 @@ function reslice(mask){
 
 	//open the file
 	open(mask);
+
+	// check if the image is actually binary.
+	if(!is("binary")){
+		print("WARNING: Input input is not a binary image. Attempting auto-conversion...");
+		bd = bitDepth();
+		setThreshold(1, 2^bd, "dark");
+		run("Convert to Mask", "stack");
+
+		// assure propper display
+		if (is("Inverting LUT")) {
+			run("Invert LUT");
+		}
+	}
 	
 	//reslice coronal into axial (output=sclice distance in microns, start with top slice)
 	run("Reslice [/]...", "output=100 start=Top avoid interpolation");
@@ -273,9 +285,8 @@ function main(){
 	setLocation(0, 0); 															//set location of the window
 	maplist = mapfilelist();													//get maplist from function mapfilelist
 	len = lengthOf(maplist);													//get length of maplist
-	iteration = 100 / (2 * len + n - 1)											//calculate the iteration steps of the progress
+	iteration = 100 / (2 * len + n - 1);										//calculate the iteration steps of the progress
 	k = 0;																		//set counter k to zero
-	
 	
 	
 	//Registration with "elastix" - one saves for every CT mask - DAPI mask pair a transformation file 
@@ -290,16 +301,30 @@ function main(){
 		DAPImask = File.nameWithoutExtension;		//without .tif
 		rename(DAPImask);							//rename to DAPImask
 		
-		//Parse filename (get slice location) and set correct slice in CT
+		//Parse filename (get slice location) and determine correct slice in CT
 		dist_from_top = parseName(DAPImask);			// get distance from top of the ct slice
 		selectWindow(CT_mask);							//select the window with the name "Ct_mask"
 		setSlice(mask_top + dist_from_top);				//set certain slice number mask_top + dist_from_top in the Ct_mask stack
 		run("Duplicate...", " ");						//duplicate the current image
 		rename(CT_slice_mask);        					//rename
 		run("8-bit");									//change the image to a 8-bit image
-		run("Multiply...", "value = 2");				//multiply all pixelvalues by 2 (make it consistent with the dapimask values)
+		run("Dilate");
+		run("Dilate");
+		run("Dilate");
+		run("Dilate");
+		run("Erode");
+		run("Erode");
+		run("Erode");
+		run("Erode");
 		saveAs("tiff", dir_trafo + CT_slice_mask + i);	//save; that is the correct ctmask to the ith dapimask
 		
+		/*
+		* DEPRECATION MARK: Maybe the registration works without copy/pasting this subset?
+		* Die Funktion hatte ich ursprünglich eingebaut weil sich bUnwarpJ da schwer tat.
+		* Elastix könnte das aber auch alleine packen. Wenn es das nicht schon default-mäßig macht:
+		* Im Parameter-file ist die option >(AutomaticTransformInitializationMethod "CenterOfGravity")< gesetzt.
+		* Das würde den Code evtl. noch ganz schön verschlanken.
+		*/
 		//get masks center of mass of CT mask slice (xy-koordinaten; brightness-weighted average)
 		run("Measure");						 //do measurement of ctmask
 		_XM = getResult("XM", nResults - 1); //Returns a measurement from the results table of the current measurment
@@ -309,8 +334,8 @@ function main(){
 		selectWindow(DAPImask);			//select dapimask
 		mask_width  = getWidth();		//get width of dapimask
 		mask_height = getHeight();		//get height of dapimask
-		run("Copy");					//Copies the contents of the current image selection to the internal clipboard
-	
+		//run("Copy");					//Copies the contents of the current image selection to the internal clipboard
+		/*
 		//Emmbed dapimask in larger image (with dimensions of the ctmask image) to place unregistered dapimask slice image in center of mass of ctmask
 		newImage(DAPImask + "_embedded", "8-bit", w, h, 1); //Opens a new image with dimensions of the ctmask image
 		run("Set...", "value=0");							//set all pixel values to 0 (=black image)
@@ -326,18 +351,26 @@ function main(){
 		//inserts the dapimask in the rectangular selection of the embedded dapimask image
 		run("Paste");		//Inserts the contents of the internal clipboard
 		run("Select None"); //Choose any of the selection tools and click outside the selection
-	
+		
 		// replace small mask with embedded one
 		close(DAPImask);
 		selectWindow(DAPImask + "_embedded");
 		rename(DAPImask);
+		*/
 		saveAs("tiff", dir_trafo + DAPImask + i);
 		run("Select None");
+		//exit();
 	
 		//settings for elastix (registration program)
 		FixedImage = dir_trafo + CT_slice_mask + i + ".tif";		//ctmask = target image 
 		MovingImage = dir_trafo + DAPImask + i + ".tif";			//dapimask = moving image which gets registered based on the target image
 		Outdir = dir_trafo;											//transformation output file
+		/*
+		a = getBoolean("Inspect?");
+		if (a) {
+			I = i;  // remember this index
+		}
+		*/
 	
 		//execute elastix
 		exec(elastix + "\\elastix.exe",							//elastix installation directory
@@ -365,8 +398,7 @@ function main(){
 		progress(k);		//update the progress bar
 		k += iteration;		//increase counter by one
 		}
-	
-	
+
 	
 	//Transformation (apply transformation files on the actual dapi images)
 	counter = 0;		//set counter (counts the entries of the displacement arrays)
@@ -385,9 +417,10 @@ function main(){
 		rename(damage_ratio_map);						//rename the ratio image with damage_ratio_map
 		mask_width  = getWidth();						//get width of the ratio image
 		mask_height = getHeight();						//get height of the ratio image
-		run("Copy");									//copy the dapi image
-		close(damage_ratio_map);						//close the dapi image
+		//run("Copy");									//copy the dapi image
+		//close(damage_ratio_map);						//close the dapi image
 	
+		/*
 		//embed in larger image (put the smaller dapi image in the empty but bigger ct image format in a certain position)
 		newImage(damage_ratio_map + "_embedded", "32-bit", w, h, 1);		//embedded image with ct image dimensions
 		run("Set...", "value = 0");											//set all pixel values to zero (=black image)
@@ -395,10 +428,14 @@ function main(){
 		makeRectangle(	X_displacement[counter],
 						Y_displacement[counter], 
 						mask_width, mask_height);
+		if (i = I) {
+			exit();
+		}
+		*/
 	
-		counter += 1;													//counter +1
-		run("Paste");													//copy the dapi image in the bigger embedded image
-		rename(damage_ratio_map);										//rename to damage_ratio_map
+		//counter += 1;													//counter +1
+		//run("Paste");													//copy the dapi image in the bigger embedded image
+		//rename(damage_ratio_map);										//rename to damage_ratio_map
 		saveAs("tiff", dir_trafo + damage_ratio_map + i + ".tif");		//save the edited dapi image
 		run("Select None");												//Clears any selection from the active images 
 	
@@ -422,6 +459,7 @@ function main(){
 	
 		//Put transformed dapi images in damage Stack(=stack with all transformed dapi images)
 		open(dir_trafo + "result.mhd");				//open transformed dapi image
+		selectWindow("result.raw");
 		run("Copy");								//copy dapi image
 		selectWindow(Damage_Stack);					//select the window "damage_stack"
 		setSlice(mask_top + dist_from_top);			//set the right slice for this specific dapi image
