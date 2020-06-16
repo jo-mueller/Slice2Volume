@@ -2,31 +2,48 @@
 //output is the Damage_Stack_int which includes all registered and interpolated dapi images
 
 //////////////////////////////////INPUT PARAMETERS///////////////////////////////
-root = "D:/Documents/Promotion/Projects/Slice2Volume/Data/Daten/";
-coronal_brain = "Brain_atlas.nrrd";
-root2 = "D:/Documents/Promotion/Projects/Slice2Volume/Code/";
+//root = "D:/Documents/Promotion/Projects/Slice2Volume/Data/Daten/";
+//coronal_brain = "Brain_atlas.nrrd";
+//root2 = "D:/Documents/Promotion/Projects/Slice2Volume/Code/";
 /////////////////////////////////////////////////////////////////////////////////
 
 
 //clean up
 close("*");	
 
-//Variables
-CT_mask = "CT_mask";
-CT = "CT_coronal";
-Damage_Stack = "Damage_Stack";
-Damage_Stack_int = "Interpolated_Damage_Stack";
+#@ String (label="Please specify the location of root") root
+#@ String (label="Please specify the location of root2") root2
+
+#@ String (label="Please specify the location of your gH2AX folder in relation to root") gH2AX
+#@ String (label="Please specify the location of your trafo folder in relation to root") trafo
+#@ String (label="Please specify the location of your elastix installation in relation to root") elastix_dir
+
+#@ Integer (label="Please specify the histo slice distance (microns) between two dapi slices") d_slice
+#@ Integer (label="Please specify the CT slice distance (microns)") d_CT
+#@ Integer (label="shifts the whole dapi stack x slices x=") shift
+
+
+root = root + "\\"
+root2 = root2 + "\\"
+@@ -25,14 +33,15 @@ Damage_Stack_int = "Interpolated_Damage_Stack";
 CT_slice_mask = "CT_slice_mask";
 
-//settings
+// settings
 d_slice = 150.0; //histo slice distance (microns) between two dapi slices
-d_CT = 100.0; // CT slice distance (microns)
-shift = 2; 	 //shifts the whole dapi stack x slices   
+d_CT    = 100.0; // CT slice distance (microns)
+shift = 4; 		 //shifts the whole dapi stack x slices   
+//d_slice = 150.0; //histo slice distance (microns) between two dapi slices
+//d_CT    = 100.0; // CT slice distance (microns)
+//shift = 4; 		 //shifts the whole dapi stack x slices   
 
-//File definitions 
-dir_gH2AX = root + "/gH2AX/";
-dir_trafo = root + "/trafo/";
-elastix = root2 + "/elastix-4.9.0-win64";
+// File definitions 
+dir_gH2AX = root + "gH2AX\\";
+dir_trafo = root + "trafo\\";
+elastix = root2 + "elastix-4.9.0-win64";
+dir_gH2AX = root + gH2AX + "\\";
+dir_trafo = root + trafo + "\\";
+elastix = root2 + elastix_dir
+//elastix = root2 + "elastix-4.9.0-win64";
 
 
 
@@ -335,7 +352,8 @@ function main(){
 		mask_width  = getWidth();		//get width of dapimask
 		mask_height = getHeight();		//get height of dapimask
 		//run("Copy");					//Copies the contents of the current image selection to the internal clipboard
-		/*
+	
+	/*
 		//Emmbed dapimask in larger image (with dimensions of the ctmask image) to place unregistered dapimask slice image in center of mass of ctmask
 		newImage(DAPImask + "_embedded", "8-bit", w, h, 1); //Opens a new image with dimensions of the ctmask image
 		run("Set...", "value=0");							//set all pixel values to 0 (=black image)
@@ -351,7 +369,8 @@ function main(){
 		//inserts the dapimask in the rectangular selection of the embedded dapimask image
 		run("Paste");		//Inserts the contents of the internal clipboard
 		run("Select None"); //Choose any of the selection tools and click outside the selection
-		
+	
+	
 		// replace small mask with embedded one
 		close(DAPImask);
 		selectWindow(DAPImask + "_embedded");
@@ -365,7 +384,8 @@ function main(){
 		FixedImage = dir_trafo + CT_slice_mask + i + ".tif";		//ctmask = target image 
 		MovingImage = dir_trafo + DAPImask + i + ".tif";			//dapimask = moving image which gets registered based on the target image
 		Outdir = dir_trafo;											//transformation output file
-		/*
+	
+	/*
 		a = getBoolean("Inspect?");
 		if (a) {
 			I = i;  // remember this index
