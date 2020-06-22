@@ -11,21 +11,19 @@
 //clean up
 close("*");	
 
-#@ String (label="Please specify the location of root") root
-#@ String (label="Please specify the location of root2") root2
+#@ File (label="Please specify the location of root", style="directory") root
+#@ File (label="Please specify the location of elastix_parameters.txt") elastix_parameters
 
-#@ String (label="Please specify the location of your gH2AX folder in relation to root") gH2AX
-#@ String (label="Please specify the location of your trafo folder in relation to root") trafo
-#@ String (label="Please specify the location of your elastix installation in relation to root") elastix_dir
+#@ File (label="Please specify the location of your gH2AX ", style="directory") gH2AX
+#@ File (label="Please specify the location of your trafo folder in relation to root", style="directory") trafo
+#@ File (label="Please specify the location of your elastix installation ", style="directory") elastix_dir
 
 #@ Integer (label="Please specify the histo slice distance (microns) between two dapi slices") d_slice
 #@ Integer (label="Please specify the CT slice distance (microns)") d_CT
 #@ Integer (label="shifts the whole dapi stack x slices x=") shift
 
 
-root = root + "\\"
-root2 = root2 + "\\"
-@@ -25,14 +33,15 @@ Damage_Stack_int = "Interpolated_Damage_Stack";
+Damage_Stack_int = "Interpolated_Damage_Stack";
 CT_slice_mask = "CT_slice_mask";
 
 // settings
@@ -39,10 +37,9 @@ shift = 4; 		 //shifts the whole dapi stack x slices
 // File definitions 
 dir_gH2AX = root + "gH2AX\\";
 dir_trafo = root + "trafo\\";
-elastix = root2 + "elastix-4.9.0-win64";
 dir_gH2AX = root + gH2AX + "\\";
 dir_trafo = root + trafo + "\\";
-elastix = root2 + elastix_dir
+elastix = elastix_dir
 //elastix = root2 + "elastix-4.9.0-win64";
 
 
@@ -270,7 +267,7 @@ function main(){
 	Filelist = getFileList(dir_gH2AX);
 	
 	//Open CT mask (with mitk produced) which is resliced in the axial plane due to the "call_reslice" script 
-	mitk_mask = root + "\\" + coronal_brain
+	//mitk_mask = root + coronal_brain;
 	reslice(mitk_mask);
 	rename(CT_mask);
 	run("Set Scale...", "distance=0");  //Use this dialog to define the spatial scale of the active image so measurement results can be presented in calibrated units, such as mm or μm. 
@@ -397,7 +394,7 @@ function main(){
 		"-f", FixedImage, 										//set fixed image
 		"-m", MovingImage, 										//set moving image
 		"-out", Outdir, 										//set output directory
-		"-p", root2 +"\\elastix_parameters.txt");				//directory of elastix parameters used for the transformation
+		"-p", elastix_parameters);								//directory of elastix parameters used for the transformation
 
 		//get the name of the current dapimask file to set the name of the trafo file
 		indexdapimask = indexOf(Filelist[i], "DAPImask");					//Returns the index within first element of filelist of the first occurrence of "scene"
