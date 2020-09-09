@@ -1,48 +1,103 @@
 //script to registrate the dapi images on the ct image
 //output is the Damage_Stack_int which includes all registered and interpolated dapi images
 
-//////////////////////////////////INPUT PARAMETERS///////////////////////////////
-//root = "D:/Documents/Promotion/Projects/Slice2Volume/Data/Daten/";
-//coronal_brain = "Brain_atlas.nrrd";
-//root2 = "D:/Documents/Promotion/Projects/Slice2Volume/Code/";
-/////////////////////////////////////////////////////////////////////////////////
 
 
 //clean up
-close("*");	
+close("*");
+if (isOpen("Progress")) {
+	close("Progress");
+}
 
-#@ File (label="Please specify the location of root", style="directory") root
-#@ File (label="Please specify the location of elastix_parameters.txt") elastix_parameters
+#@ String (visibility=MESSAGE, value="Elastix parameters", required=false) a
+#@ File (label="Elastix parameter file", style="file") elastix_parameters
+#@ File (label="Elastix installation directory", style="directory") elastix_dir
 
-#@ File (label="Please specify the location of your gH2AX ", style="directory") gH2AX
-#@ File (label="Please specify the location of your trafo folder in relation to root", style="directory") trafo
-#@ File (label="Please specify the location of your elastix installation ", style="directory") elastix_dir
+#@ String (visibility=MESSAGE, value="Input data", required=false) b
+#@ File (label="Microscopy input", style="directory") dir_gH2AX
+#@ File (label="Target Volume input", style="file") TrgVolume
 
-#@ Integer (label="Please specify the histo slice distance (microns) between two dapi slices") d_slice
-#@ Integer (label="Please specify the CT slice distance (microns)") d_CT
-#@ Integer (label="shifts the whole dapi stack x slices x=") shift
+#@ Integer (label="Mask channel", value=3) channel_mask
+#@ Integer (label="Data channel", value=5) channel_data
+
+#@ String (visibility=MESSAGE, value="Matching parameters", required=false) c
+#@ Integer (label="Distance between subsequent sections (microns)") d_slice
+#@ Integer (label="Target volume voxel size (microns)") d_CT
+#@ Integer (label="Discarded tissue (microns)") shift
+#@ Integer (label="Histo Outline smoothing degree", value=1) n_smoothing_hist
+#@ Integer (label="Volume outline smoothing degree", value=3) n_smoothing_vol
+#@ String (label="Exclude labels from Atlas", value = "102, 337-350") exclude_labels
+#@ boolean  (label = "Batch mode", value=true) use_batch
+
+setBatchMode(use_batch);
+
+
+// Create output directories for trafo file and result
+getDateAndTime(year, month, dayOfWeek, dayOfMonth, hour, minute, second, msec);
+outdir = File.getParent(dir_gH2AX) + "\\" + 
+		d2s(year,0) + d2s(month,0) + d2s(dayOfMonth, 0) + "_" + 
+		d2s(hour,0) + d2s(minute,0) + d2s(second, 0) + 
+		"_ResultOf_" + topdir(dir_gH2AX) + "_2_" + "Volume" + "\\";
+dir_trafo = outdir + "trafo\\";
+dir_res = outdir + "results\\";
 
 
-Damage_Stack_int = "Interpolated_Damage_Stack";
-CT_slice_mask = "CT_slice_mask";
+File.makeDirectory(outdir);
+File.makeDirectory(dir_trafo);
+File.makeDirectory(dir_res);
 
-// settings
-d_slice = 150.0; //histo slice distance (microns) between two dapi slices
-d_CT    = 100.0; // CT slice distance (microns)
-shift = 4; 		 //shifts the whole dapi stack x slices   
-//d_slice = 150.0; //histo slice distance (microns) between two dapi slices
-//d_CT    = 100.0; // CT slice distance (microns)
-//shift = 4; 		 //shifts the whole dapi stack x slices   
+function LoadAndSegmentAtlas(filename, exclude_labels){
+	/*
+	 * Open and Segment an Atlas image according to a given format string 
+	 */
 
-// File definitions 
-dir_gH2AX = root + "gH2AX\\";
-dir_trafo = root + "trafo\\";
-dir_gH2AX = root + gH2AX + "\\";
-dir_trafo = root + trafo + "\\";
-elastix = elastix_dir
-//elastix = root2 + "elastix-4.9.0-win64";
+	// parse format string
+	exclude_labels = split(exclude_labels, ",");
+	labels = newArray(0);
+	for (i = 0; i < exclude_labels.length; i++) {
 
+		// if a range of labels is given
+		if (matches(exclude_labels[i], ".*-.*")) {
+			substr = split(exclude_labels[i], "-");
+			for (j = parseInt(substr[0]); j <= parseInt(substr[1]); j++) {
+				labels = Array.concat(labels, j);
+			}
+		// if single number is given
+		} else {
+			labels = Array.concat(labels, parseInt(exclude_labels[i]));
+		}
+	}
 
+	// now remove undesried labels from atlas
+	open(filename);
+	TrgVolume = File.nameWithoutExtension;
+	rename(TrgVolume);
+
+	for (i = 1; i <= nSlices; i++) {
+		setSlice(i);
+		for (j = 0; j < labels.length; j++) {
+			setThreshold(labels[j], labels[j]);
+			run("Create Selection");
+			if (selectionType == -1) {
+				continue;
+			}
+			run("Clear", "slice");
+		}
+	}
+
+	// Lastly: make atlas binary
+	selectWindow(TrgVolume);
+	setThreshold(1, 1e30);
+	run("Convert to Mask", "stack");
+
+	return TrgVolume;
+}
+
+function topdir(path){
+	// returns exclusively the top directory from full path
+	path = split(path, "\\");
+	return path[path.length-1];
+}
 
 function mapfilelist(){
 	//returns an array with all map.tif files in the gH2AX folder
@@ -79,7 +134,7 @@ function parseName(string){
 	slice = parseInt(slice);									//Converts string to an integer
 
 	number = (slice - top_slice_dapi) * 2 + scene; 				//get index of slice from top = 1,2,3,...
-	dist_from_top = floor((number * d_slice) / d_CT) + shift;   //index of according CT slice noting the different slice distances
+	dist_from_top = floor((number * d_slice + shift) / d_CT + 0.5);   //index of according CT slice noting the different slice distances
 
 	return dist_from_top;										//returns slice location number
 	}
@@ -115,22 +170,27 @@ function reslice(mask){
 	}
 
 
-function StackMaskin(root){
+function StackMaskin(path, deg_smoothing){
 	//this function browses a list of ratio maps of the brain and 
 	//extracts a external contour (=masks) for each slice
 	
+	// append // to path if not present
+	if (!endsWith(path, "\\")) {
+		path = path + "\\";
+	}
+	
 	//Returns an array containing the names of the files in the folder.
-	Filelist = getFileList(root);
+	Filelist = getFileList(path);
 	
 	//loop over all images
 	for (i = 0; i < lengthOf(Filelist); i++) {			
 		//pick only the files which end with map.tif
 		if(!endsWith(Filelist[i], "map.tif")){
 		continue;
-			}
+		}
 		
 		// Open maps
-		open(root + Filelist[i]);
+		open(path + Filelist[i]);
 		name = File.nameWithoutExtension;				//name with extension removed.
 		index = indexOf(name, "_map"); 					//Returns the index within current element of the first occurrence of "_map"
 		mask = substring(name, 0, index) + "_DAPImask";	//define mask variable
@@ -149,19 +209,20 @@ function StackMaskin(root){
 	
 		//Postprocess
 		run("Fill Holes");			//fills holes in objects by filling the background
+		
 		//Adds/removes pixels to the edges of objects in a binary image->makes image smoother
-		run("Dilate");
-		run("Dilate");
-		run("Dilate");
-		run("Dilate");
-		run("Erode");
-		run("Erode");
-		run("Erode");
-		run("Erode");
+		for (j = 0; j < deg_smoothing; j++) {
+			run("Erode");
+			run("Erode");
+		}
+		for (j = 0; j < deg_smoothing; j++) {
+			run("Dilate");
+			run("Dilate");
+		}
 		
 		run("Fill Holes");					//fill holes
 		run("Rotate 90 Degrees Left");		//rotates image by 90 degrees
-		saveAs(".tiff", root + mask);		//saves mask
+		saveAs(".tiff", path + mask);		//saves mask
 		close("*");							//close all open images
 		}
 	}
@@ -200,6 +261,9 @@ function top_layer(mask){
 			break;
 			}
 		}
+
+	print("First non-zero volume slice = " + d2s(top_slice, 0));
+	run("Clear Results");
 	return top_slice;			//return value
 	}
 
@@ -256,20 +320,86 @@ function getBar(p1, p2) {
     return substring(bar2, 0, index) + substring(bar1, index + 1, N);	//return the bar
 	}
 
+function extractMask(image, s, savepath, n_smoothing){
+	// Creates a mask of channel <s> in image <image>
+
+	mask = image + "_mask"; 			// name of the generated mask
+	selectWindow(image);				// select input stack
+	setSlice(s); 						//Displays the desired slice of the active stack.
+	run("Duplicate...", "title="+mask);	//Creates a new window containing a copy of the active image
+
+	//Create Mask from DAPI image
+	selectWindow(mask);			//Activates the window with the title "mask"
+	setThreshold(4, 1e30);		//Sets the lower and upper threshold levels of image 
+	run("Convert to Mask");		//Converts an image to black and white.
+
+	//Postprocess
+	run("Fill Holes");			//fills holes in objects by filling the background
+	
+	//Adds/removes pixels to the edges of objects in a binary image->makes image smoother
+	for (j = 0; j < n_smoothing; j++) {
+		run("Erode");
+	}
+	for (j = 0; j < n_smoothing; j++) {
+		run("Dilate");
+	}
+	
+	return mask;
+}
+
+function CoM_alignment(image, target){
+	/*
+	* embeds an input image <image> in a new image into a new blank image of width 
+	* <width> and height <height> at position <x>, <y>
+	*/
+
+	output = image + "_embedded";
+	
+	selectWindow(image);
+	type = bitDepth();
+	w = getWidth();
+	h = getHeight();
+	run("Copy");
+
+	selectWindow(target);
+	run("Measure");
+	XM = getResult("XM", nResults - 1); 	// Returns a measurement from the results table of the current measurment
+	YM = getResult("YM", nResults - 1); 	// XM, YM are coordinates of center of mass
+	_w = getWidth();
+	_h = getHeight();
+	newImage(output, d2s(type,0) + "-bit", _w, _h, 1); 	// Opens a new image with dimensions of 3D image
+	run("Set...", "value=0");					// set all pixel values to 0 (=black image)
+	
+	//Emmbed dapimask in larger image (with dimensions of the ctmask image) to place unregistered dapimask slice image in center of mass of ctmask	
+	//Creates a rectangular selection, where x and y are the coordinates (in pixels) of the upper left corner of the selection
+	close(image);
+	selectWindow(output);
+	makeRectangle( 	round(XM - w/2), 
+					round(YM - h/2), 
+					w, h);
+	run("Paste");
+	
+	return output;
+}
 
 function main(){
 	//main function which includes three parts: registration via elastix, transformation and interpolation
+	
+	// Variables (TODO: are these really necessary?)
+	Output_Stack = "Output_Stack";
+	Output_Stack_int = "Interpolated_Output_Stack";
+	Mask_3D = "Mask_3D";
+	Data_2D = "Data_2D";
+
 
 	//run "gH2AX_StackMaskin.ijm" script which creates the dapi image masks in the "gH2AX" folder
-	StackMaskin(dir_gH2AX);
+	//StackMaskin(dir_gH2AX, n_smoothing);
 	
 	//Returns an array containing the names of the files, here all gH2AX files (contains all dapimasks)
 	Filelist = getFileList(dir_gH2AX);
 	
-	//Open CT mask (with mitk produced) which is resliced in the axial plane due to the "call_reslice" script 
-	//mitk_mask = root + coronal_brain;
-	reslice(mitk_mask);
-	rename(CT_mask);
+	//Open Volume
+	VolMask = LoadAndSegmentAtlas(TrgVolume, exclude_labels);
 	run("Set Scale...", "distance=0");  //Use this dialog to define the spatial scale of the active image so measurement results can be presented in calibrated units, such as mm or μm. 
 	
 	w = getWidth();		//Returns the width in pixels of ct mask
@@ -277,237 +407,142 @@ function main(){
 	n = nSlices;		//Returns the number of images in the current stack.
 	
 	//get number of the top slice of CT mask where one can actually see something with the "top_slice" script
-	mask_top = top_layer(CT_mask);
+	mask_top = top_layer(VolMask);
 	
 	//Create empty image for histo data storage (the damage stack will consist of the registered dapi images)
-	newImage(Damage_Stack, "32-bit", w, h, n);   //Opens a new stack using the name with certain properties
+	newImage(Output_Stack, "32-bit", w, h, n);   //Opens a new stack using the name with certain properties
 	run("Set...", "value=0");					 //set all pixel values to 0 (=black image)
-	
-	//Arrays that store the information on how much the DAPImasks were translated before registration
-	//before the actual registration we try to manualy shift the dapimask in the center of mass of the ct mask to make 
-	//registration easier
-	X_displacement = newArray(0);	//Returns an empty array 
-	Y_displacement = newArray(0);
 	
 	//set what you want to measure if you run(measure)
 	run("Set Measurements...", "area center area_fraction display redirect=None decimal=2");
 
 	//create a progress bar during the processing
-	title = "[Progress]";														//title of the progress window
-	run("Text Window...", "name="+ title +" width=50 height=5 monospaced");		//create a window for the progress bar
-	selectWindow("Progress");													//select window
-	setLocation(0, 0); 															//set location of the window
-	maplist = mapfilelist();													//get maplist from function mapfilelist
-	len = lengthOf(maplist);													//get length of maplist
-	iteration = 100 / (2 * len + n - 1);										//calculate the iteration steps of the progress
-	k = 0;																		//set counter k to zero
+	title = "[Progress]";														// title of the progress window
+	run("Text Window...", "name="+ title +" width=50 height=5 monospaced");		// create a window for the progress bar
+	selectWindow("Progress");													// select window
+	setLocation(0, 0); 															// set location of the window
+	maplist = mapfilelist();													// get maplist from function mapfilelist
+	iteration = 100 /maplist.length;											// calculate the iteration steps of the progress
+	k = 0;																		// set counter k to zero
 	
 	
-	//Registration with "elastix" - one saves for every CT mask - DAPI mask pair a transformation file 
-	for (i = 0; i < lengthOf(Filelist); i++) {		//loop over all DAPI masks
+	//Registration with "elastix" - one transformation file for every Mask slice - histo mask pair a transformation file 
+	for (i = 0; i < lengthOf(Filelist); i++) {		//loop over all histo masks
+
 		//Process Histo mask
-		if(!endsWith(Filelist[i], "_DAPImask.tif")){
+		if(!endsWith(Filelist[i], "map.tif")){
 			continue;
-			}
-			
-		//Open DAPI mask
-		open(dir_gH2AX + Filelist[i]);				//open ith dapimask
-		DAPImask = File.nameWithoutExtension;		//without .tif
-		rename(DAPImask);							//rename to DAPImask
-		
-		//Parse filename (get slice location) and determine correct slice in CT
-		dist_from_top = parseName(DAPImask);			// get distance from top of the ct slice
-		selectWindow(CT_mask);							//select the window with the name "Ct_mask"
-		setSlice(mask_top + dist_from_top);				//set certain slice number mask_top + dist_from_top in the Ct_mask stack
-		run("Duplicate...", " ");						//duplicate the current image
-		rename(CT_slice_mask);        					//rename
-		run("8-bit");									//change the image to a 8-bit image
-		run("Dilate");
-		run("Dilate");
-		run("Dilate");
-		run("Dilate");
-		run("Erode");
-		run("Erode");
-		run("Erode");
-		run("Erode");
-		saveAs("tiff", dir_trafo + CT_slice_mask + i);	//save; that is the correct ctmask to the ith dapimask
-		
-		/*
-		* DEPRECATION MARK: Maybe the registration works without copy/pasting this subset?
-		* Die Funktion hatte ich ursprünglich eingebaut weil sich bUnwarpJ da schwer tat.
-		* Elastix könnte das aber auch alleine packen. Wenn es das nicht schon default-mäßig macht:
-		* Im Parameter-file ist die option >(AutomaticTransformInitializationMethod "CenterOfGravity")< gesetzt.
-		* Das würde den Code evtl. noch ganz schön verschlanken.
-		*/
-		//get masks center of mass of CT mask slice (xy-koordinaten; brightness-weighted average)
-		run("Measure");						 //do measurement of ctmask
-		_XM = getResult("XM", nResults - 1); //Returns a measurement from the results table of the current measurment
-		_YM = getResult("YM", nResults - 1); //_XM,_YM are coordinates of center of mass
-	
-		//get bounding box of DAPI mask image and embed in larger image to ease registration
-		selectWindow(DAPImask);			//select dapimask
-		mask_width  = getWidth();		//get width of dapimask
-		mask_height = getHeight();		//get height of dapimask
-		//run("Copy");					//Copies the contents of the current image selection to the internal clipboard
-	
-	/*
-		//Emmbed dapimask in larger image (with dimensions of the ctmask image) to place unregistered dapimask slice image in center of mass of ctmask
-		newImage(DAPImask + "_embedded", "8-bit", w, h, 1); //Opens a new image with dimensions of the ctmask image
-		run("Set...", "value=0");							//set all pixel values to 0 (=black image)
-		//Creates a rectangular selection, where x and y are the coordinates (in pixels) of the upper left corner of the selection
-		makeRectangle( 	round(_XM - mask_width/2), 
-						round(_YM - mask_height/2), 
-						mask_width, mask_height); 
-						
-		//store info about translation in x- and y-direction of dapimask				
-		X_displacement = Array.concat(X_displacement, round(_XM - mask_width/2));   //Returns a new array created by joining two arrays or values
-		Y_displacement = Array.concat(Y_displacement, round(_YM - mask_height/2));
-	
-		//inserts the dapimask in the rectangular selection of the embedded dapimask image
-		run("Paste");		//Inserts the contents of the internal clipboard
-		run("Select None"); //Choose any of the selection tools and click outside the selection
-	
-	
-		// replace small mask with embedded one
-		close(DAPImask);
-		selectWindow(DAPImask + "_embedded");
-		rename(DAPImask);
-		*/
-		saveAs("tiff", dir_trafo + DAPImask + i);
-		run("Select None");
-		//exit();
-	
-		//settings for elastix (registration program)
-		FixedImage = dir_trafo + CT_slice_mask + i + ".tif";		//ctmask = target image 
-		MovingImage = dir_trafo + DAPImask + i + ".tif";			//dapimask = moving image which gets registered based on the target image
-		Outdir = dir_trafo;											//transformation output file
-	
-	/*
-		a = getBoolean("Inspect?");
-		if (a) {
-			I = i;  // remember this index
 		}
-		*/
+		
+			
+		//Open histological input mask
+		open(dir_gH2AX + "\\" + Filelist[i]);			//open ith histo file
+		histo_input = File.nameWithoutExtension;		//without .tif
+		rename(histo_input);							//rename to DAPImask
+		run("Rotate 90 Degrees Left");					//rotates image by 90 degrees
+
+		// extract mask image
+		Mask_2D = extractMask(histo_input, channel_mask, dir_trafo, n_smoothing_hist); 	// mask the histological input
+
+		//Parse filename and determine correct slice in 3D input
+		dist_from_top = parseName(Filelist[i]);  		// get corresponding volume slice location from filename of DAPImask
+		selectWindow(VolMask);							// select the window with the name "Ct_mask"
+		setSlice(mask_top + dist_from_top);				// set certain slice number mask_top + dist_from_top in the Ct_mask stack
+		run("Duplicate...", "title="+Mask_3D);			// duplicate the current image
+		run("8-bit"); 									// smooth outline
+		for (k = 0; k < n_smoothing_vol; k++) {
+			run("Erode");
+		}
+		for (k = 0; k < n_smoothing_vol; k++) {
+			run("Dilate");
+		}
+
+
+		Mask_2D = CoM_alignment(Mask_2D, Mask_3D);	// Center of Mass alignment of Mask 2D and Mask 3D
+
+		//settings for elastix (registration program)
+		FixedImage = dir_trafo + Mask_3D + "_" + i;		// Volume mask = target image 
+		MovingImage = dir_trafo + Mask_2D + "_" + i;	// Histo mask = moving image which gets registered based on the target image
+
+		// Save both masks and make sure they're nicely displayed
+		selectWindow(Mask_2D);
+		//getLocationAndSize(x, y, width, height);
+		//setLocation(screenWidth/2 - width, 0);
+		saveAs("tiff", MovingImage);	//save; that is the correct masked slice for the ith histomask
+		close();
+
+		selectWindow(Mask_3D);
+		//setLocation(screenWidth/2, 0);
+		saveAs("tiff", FixedImage);	//save; that is the correct masked slice of volume mask
+		rename(Mask_3D);
 	
 		//execute elastix
-		exec(elastix + "\\elastix.exe",							//elastix installation directory
-		"-f", FixedImage, 										//set fixed image
-		"-m", MovingImage, 										//set moving image
-		"-out", Outdir, 										//set output directory
-		"-p", elastix_parameters);								//directory of elastix parameters used for the transformation
+		exec(elastix_dir + "\\elastix.exe",						//elastix installation directory
+		"-f", FixedImage + ".tif", 								//set fixed image
+		"-m", MovingImage + ".tif", 							//set moving image
+		"-out", dir_trafo, 										//set output directory
+		"-p", elastix_parameters);								//directory of elastix parameters used for the transformation		
 
-		//get the name of the current dapimask file to set the name of the trafo file
-		indexdapimask = indexOf(Filelist[i], "DAPImask");					//Returns the index within first element of filelist of the first occurrence of "scene"
-		Nametrafo = substring(Filelist[i], 0, indexdapimask);				//pick string including the number
+		//get the name of the current 2Dmask file to set the name of the trafo file
+		indexhisto = indexOf(Filelist[i], "map");					//Returns the index within first element of filelist of the first occurrence of "scene"
+		Nametrafo = substring(Filelist[i], 0, indexhisto);			//pick string including the number
 	
 		//rename and delete unnecessary files
 		File.rename(dir_trafo + "TransformParameters.0.txt", dir_trafo + Nametrafo + "trafo" + ".txt");	//rename trafo files
 	    File.delete(dir_trafo + "IterationInfo.0.R0.txt");			//delete saved transformation process files
 	    File.delete(dir_trafo + "IterationInfo.0.R1.txt");			//delete saved transformation process files
 	    File.delete(dir_trafo + "IterationInfo.0.R2.txt");			//delete saved transformation process files
+	    File.delete(dir_trafo + "elastix.log");						//delete Log
 	    File.delete(FixedImage);									//delete saved fixed image
 	    File.delete(MovingImage);									//delete saved moving image
-	    File.delete(dir_gH2AX + Filelist[i]);						//delete original dapimask
 	
-		close(CT_slice_mask + i + ".tif");							//close ctmask
-		close(DAPImask + i + ".tif");								//close dapimask
+		// Now run transformix based on determined transformation file.
+		selectWindow(histo_input);
+		setSlice(channel_data);
+		run("Duplicate...", "title=Data_2D");	//duplicate the slice
+		Data_2D = CoM_alignment("Data_2D", Mask_3D);
+
+		MovingImage = dir_trafo + Data_2D + "_" + i;	// Histo mask = moving image which gets registered based on the target image
+		trafo_file = Nametrafo + "trafo" + ".txt"; 		// set transformation file for right dapi image
+		saveAs("tiff", MovingImage);
+		rename(Data_2D);
+		
+		//execute transformix (transformation program-included in elastix)
+		exec(elastix_dir + "\\transformix.exe",						// transformix installation directory
+			"-in", MovingImage + ".tif",										// set moving image
+			"-out", dir_res,										// set output directory
+			"-tp", dir_trafo + trafo_file);							// set trafo file
+
+		//Put transformed dapi images in damage Stack(=stack with all transformed dapi images)
+		open(dir_res + "result.mhd");				//open transformed dapi image
+		selectWindow("result.raw");
+		run("Copy");								//copy dapi image
+		selectWindow(Output_Stack);					//select the window "damage_stack"
+		setSlice(mask_top + dist_from_top);			//set the right slice for this specific dapi image
+		setMetadata("Label", Filelist[i]);			//Sets damage_ratio_map as the label of the current damage_stack slice
+		run("Paste");								//copy dapi image in damage_stack
+
+		close(Data_2D);
+		close(Mask_2D);
+		close(Mask_3D);
+		close("result.raw");
+		close(histo_input);
 
 		progress(k);		//update the progress bar
 		k += iteration;		//increase counter by one
-		}
-
-	
-	//Transformation (apply transformation files on the actual dapi images)
-	counter = 0;		//set counter (counts the entries of the displacement arrays)
-	
-	//loop over all ration files (real dapi images)
-	for (i = 0; i < lengthOf(Filelist); i++) {
-	
-		if(!endsWith(Filelist[i], "_ratio.tif")){		//pick only ratio=dapi files
-			continue;
-			}
-		
-		// Open the ratio map
-		open(dir_gH2AX + Filelist[i]);					//open the dapi file
-		run("Rotate 90 Degrees Left");					//rotate the image 90 degrees
-		damage_ratio_map = File.nameWithoutExtension;	//set variable (damage_ratio_map=ratio file)
-		rename(damage_ratio_map);						//rename the ratio image with damage_ratio_map
-		mask_width  = getWidth();						//get width of the ratio image
-		mask_height = getHeight();						//get height of the ratio image
-		//run("Copy");									//copy the dapi image
-		//close(damage_ratio_map);						//close the dapi image
-	
-		/*
-		//embed in larger image (put the smaller dapi image in the empty but bigger ct image format in a certain position)
-		newImage(damage_ratio_map + "_embedded", "32-bit", w, h, 1);		//embedded image with ct image dimensions
-		run("Set...", "value = 0");											//set all pixel values to zero (=black image)
-		//Creates a rectangular selection, where x and y are the coordinates (in pixels) of the upper left corner of the selection
-		makeRectangle(	X_displacement[counter],
-						Y_displacement[counter], 
-						mask_width, mask_height);
-		if (i = I) {
-			exit();
-		}
-		*/
-	
-		//counter += 1;													//counter +1
-		//run("Paste");													//copy the dapi image in the bigger embedded image
-		//rename(damage_ratio_map);										//rename to damage_ratio_map
-		saveAs("tiff", dir_trafo + damage_ratio_map + i + ".tif");		//save the edited dapi image
-		run("Select None");												//Clears any selection from the active images 
-	
-		//Calculate according (to current dapi image) CT slice location
-		dist_from_top = parseName(damage_ratio_map);
-
-		//get the name of the current ratio file to get the name of the trafo file
-		indexratio = indexOf(Filelist[i], "ratio");					//Returns the index within first element of filelist of the first occurrence of "scene"
-		Nametrafo = substring(Filelist[i], 0, indexratio);			//pick string including the number
-		
-		//transform dapi image with received transformation file
-		Outdir = dir_trafo;											//transformated dapi image output file
-		MovingImage = dir_trafo + damage_ratio_map + i + ".tif";	//moving image=dapi image
-		trafo_file = Nametrafo + "trafo" + ".txt"; 					//set transformation file for right dapi image
-		
-		//execute transformix (transformation program-included in elastix)
-		exec(elastix + "\\transformix.exe",						//transformix installation directory
-		"-in", MovingImage,										//set moving image
-		"-out", Outdir,											//set output directory
-		"-tp", dir_trafo + trafo_file);							//set trafo file
-	
-		//Put transformed dapi images in damage Stack(=stack with all transformed dapi images)
-		open(dir_trafo + "result.mhd");				//open transformed dapi image
-		selectWindow("result.raw");
-		run("Copy");								//copy dapi image
-		selectWindow(Damage_Stack);					//select the window "damage_stack"
-		setSlice(mask_top + dist_from_top);			//set the right slice for this specific dapi image
-		setMetadata("Label", damage_ratio_map);		//Sets damage_ratio_map as the label of the current damage_stack slice
-		run("Paste");								//copy dapi image in damage_stack
-	
-		close(damage_ratio_map + i + ".tif");		//close dapi images
-		close("result.raw");						//close result.raw
-		close(damage_ratio_map);					//close damage_ratio_map
-	
-		File.delete(dir_trafo + "result.raw");		//delete result file
-	    File.delete(MovingImage);					//delete moving image file	
-	    
-	    progress(k);		//update the progress bar
-		k += iteration;		//increase counter by one	
-		}
-	close(CT_mask);		//close ctmask
-	
-	
+	}	
 	
 	//interpolate missing slices
 	//there are more ct slices than dapi slices -> interpolate every third dapi slice from the two adjacent slices
-	selectWindow(Damage_Stack);					//select the damage stack
+	selectWindow(Output_Stack);					//select the damage stack
 	run("Duplicate...", "duplicate");			//duplicate the stack
-	rename(Damage_Stack_int);					//rename the duplicated stack, will be the interpolated stack
+	rename(Output_Stack_int);					//rename the duplicated stack, will be the interpolated stack
 	
 	//get top slice of of damage stack via "top_slice" function
-	mask_top = top_layer(Damage_Stack_int);				//convert to number
+	mask_top = top_layer(Output_Stack_int);				//convert to number
 	
 	//get bottom slice of damage stack via "bottom_slice" function
-	mask_bottom = bottom_layer(Damage_Stack_int);		//convert to number
+	mask_bottom = bottom_layer(Output_Stack_int);		//convert to number
 	
 	//set what you want to measure if you run(measure)
 	run("Set Measurements...", "area center area_fraction display redirect=None decimal=2");
@@ -541,7 +576,7 @@ function main(){
 			rename("a");					//rename it to "a"
 	
 			//copy slice i+1
-			selectWindow(Damage_Stack_int);	//select the damage_stack_int
+			selectWindow(Output_Stack_int);	//select the damage_stack_int
 			setSlice(i + 1);				//set slice i+1
 			run("Duplicate...", "slice");	//duplicate the slice
 			rename("b");					//rename it to "b"
@@ -555,13 +590,13 @@ function main(){
 			//insert the interpolated slice into damage stack
 			selectWindow("c");					//select the interpolated slice "c"
 			run("Copy");						//copy the slice
-			selectWindow(Damage_Stack_int);		//select the damage_stack_int
+			selectWindow(Output_Stack_int);		//select the damage_stack_int
 			setSlice(i);						//set slice i
 			run("Paste");						//paste the interpolated slice
 	
 			//Clean up
 			close("c");     					//close the interpolated slice
-			close("Damage_stack");				//close the damage_stack
+			close(Output_Stack);				//close the damage_stack
 
 			
 			}
@@ -570,8 +605,8 @@ function main(){
 			k += iteration;		//increase counter by one
 		}
 	//save the interpolated damage stack in root
-	selectWindow(Damage_Stack_int);
-	saveAs(".tiff", root + "\\" + Damage_Stack_int);
+	selectWindow(Output_Stack_int);
+	saveAs(".tiff", root + "\\" + Output_Stack_int);
 	
 	//close unnecessary windows	
 	selectWindow("Log");
