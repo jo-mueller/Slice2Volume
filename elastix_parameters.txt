@@ -1,8 +1,8 @@
 // Registration type and runtime parameters
-(Transform "SimilarityTransform")
+(Transform "AffineTransform")
 (MaximumNumberOfIterations 1000)
 (ImagePyramidSchedule 10 10 10)
-(NumberOfSpatialSamples 10000)
+(NumberOfSpatialSamples 15000)
 (FinalGridSpacingInVoxels 50 50 50 )
 (Registration "MultiResolutionRegistration")
 (CheckNumberOfSamples "false" )
@@ -14,7 +14,7 @@
 
 // Initial transformation
 (AutomaticTransformInitialization "true")
-(AutomaticTransformInitializationMethod "CenterOfGravity")
+(AutomaticTransformInitializationMethod "GeometricalCenter")
 
 // How to spread the sample points in the images
 (ImageSampler "Random" )
@@ -39,7 +39,7 @@
 
 // About interpolation of involved images.
 // Set ResampleInterpolator to NearestNeighbour for Atlas registration 
-(Interpolator "LinearInterpolator" )
+(Interpolator "NearestNeighborInterpolator" )
 (ResampleInterpolator "FinalLinearInterpolator")
 (AutomaticParameterEstimation "true")
 (AutomaticScalesEstimation "true")
