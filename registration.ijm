@@ -535,8 +535,11 @@ function main(){
 	//interpolate missing slices
 	//there are more ct slices than dapi slices -> interpolate every third dapi slice from the two adjacent slices
 	selectWindow(Output_Stack);					//select the damage stack
+	saveAs("tiff", dir_res + Output_Stack);		// save raw interpolated stack
+	rename(Output_Stack);
 	run("Duplicate...", "duplicate");			//duplicate the stack
 	rename(Output_Stack_int);					//rename the duplicated stack, will be the interpolated stack
+	exit();
 	
 	//get top slice of of damage stack via "top_slice" function
 	mask_top = top_layer(Output_Stack_int);				//convert to number
