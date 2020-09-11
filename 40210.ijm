@@ -30,23 +30,40 @@ TableSize_10x = getMotorFrame(filename_10x);
 TablePos_40x = getMotorCenter(filename_40x);
 TableSize_40x = getMotorFrame(filename_40x);
 
+Array.show(TableSize_10x);
+Array.show(TableSize_40x);
+exit();
+
+selectWindow(Img_40x);
+makePoint(getWidth()/2, getHeight()/2, "add");
+
 // Calculate motor/pixel conversion factor in 10x coordinates
-m_Motor2Px = Math.pow(2, series_10x-1) * getWidth()/TableSize_10x[0];
+selectWindow(Img_10x);
+m_Motor2Px_10x = MultiplyVectorVector(	newArray(getWidth(), getHeight()),
+										newArray(1.0/TableSize_10x[0], 1.0/TableSize_10x[1]));
+m_Motor2Px_10x = MultiplyVectorScalar(m_Motor2Px_10x, Math.pow(2, series_10x-1));		// convert factor to raw 10x dimensions 
 
 // Find center of 10x Image in pixel coordinates
 // Multipy the width of the 10x image with (2^series-1) to account for
 // the fact that we are just using the downsampled image here
-selectWindow(Img_10x);
-xcenter = Math.pow(2, series_10x-1) * getWidth()/2;
-ycenter = Math.pow(2, series_10x-1) * getHeight()/2;
-PxCenter = newArray(xcenter, ycenter);
+Center_10x = newArray(getWidth()/2, getHeight()/2);
+makePoint(Center_10x[0], Center_10x[1], "add"); 			// show center of slide on displayed (downsampled) 10x image
+Center_10x = MultiplyVectorScalar(Center_10x, Math.pow(2, series_10x-1)); 	// convert center coordinates to values for raw 10x image
 
 // Find difference of motor coordinates between 10x and 40x image,
 // convert it into 10x pixelunits and determine the center of the
 // 40x image in units of 10x pixel coordinates
-RelativeMotorPos = VectorSubtract(TablePos_40x, TablePos_10x);
-RelativeMotorPos = MultiplyVectorScalar(RelativeMotorPos, m_Motor2Px);
-PixelPos_40x = VectorSubtract(PxCenter, RelativeMotorPos);
+RelativeMotorPos = VectorSubtract(TablePos_10x, TablePos_40x);
+RelativeMotorPos = MultiplyVectorVector(RelativeMotorPos, m_Motor2Px_10x);
+PixelPos_40x = VectorSubtract(Center_10x, RelativeMotorPos);
+
+selectWindow(Img_10x);
+w = TableSize_40x[0] * m_Motor2Px_10x[0] / Math.pow(2, series_10x-1);
+h = TableSize_40x[1] * m_Motor2Px_10x[1] / Math.pow(2, series_10x-1);
+makePoint(PixelPos_40x[0] / Math.pow(2, series_10x-1), PixelPos_40x[1]/ Math.pow(2, series_10x-1), "add");
+makeRectangle(PixelPos_40x[0] / Math.pow(2, series_10x-1) - w/2, PixelPos_40x[1] / Math.pow(2, series_10x-1) - h/2, w, h);
+exit();
+
 print("Conversion factor Motor-to-Pixels: " + d2s(m_Motor2Px, 3));
 print("Identified location in 10x image: ["  + d2s(PixelPos_40x[0], 0) + 
 										", " + d2s(PixelPos_40x[1], 0) + "]");
@@ -115,8 +132,15 @@ function TransformFromElastixFile(filename_trafo, vector){
 
 function SeriesOpen(filename, series){
 	run("Bio-Formats Importer", "open=" + filename + " autoscale color_mode=Default rois_import=[ROI manager] view=Hyperstack stack_order=XYCZT series_"+series);
+	run("Make Composite");
 	name = File.nameWithoutExtension;
 	rename(name);
+
+	for (i = 1; i <= nSlices; i++) {
+		setSlice(i);
+		run("Enhance Contrast", "saturated=0.35");
+	}
+	
 	return name;
 }
 
@@ -134,8 +158,9 @@ function getMotorCenter(image){
 function getMotorFrame(image){
 	// reads image size in motor coordinates from czi metadata
 	Ext.setId(image);
-	Ext.getMetadataValue("Information|Image|S|Scene|ContourSize #1",size);
-	size = split(size, ",");
+	Ext.getMetadataValue("Information|Image|SizeX #1",size_x);
+	Ext.getMetadataValue("Information|Image|SizeY #1",size_y);
+	size = newArray(size_x, size_y);
 	for (i = 0; i < size.length; i++) {
 		size[i] = parseFloat(size[i]); // convert to number
 	}
@@ -168,6 +193,14 @@ function VectorAdd(a, b){
 	
 	for (i = 0; i < a.length; i++) {
 		c[i] = a[i] + b[i];
+	}
+	return c;
+}
+
+function MultiplyVectorVector(a, b){
+	c = newArray(a.length);
+	for (i = 0; i < a.length; i++) {
+		c[i] = a[i] * b[i];
 	}
 	return c;
 }
