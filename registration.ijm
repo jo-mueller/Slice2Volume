@@ -669,6 +669,3 @@ function main(){
 	}
 
 main();
-
-//n=4;
-//run("Multiply...", "value=&n");
