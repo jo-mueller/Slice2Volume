@@ -171,7 +171,7 @@ function reslice(mask){
 	close(name);						//close the mask
 	}
 
-
+/*
 function StackMaskin(path, deg_smoothing){
 	//this function browses a list of ratio maps of the brain and 
 	//extracts a external contour (=masks) for each slice
@@ -228,7 +228,7 @@ function StackMaskin(path, deg_smoothing){
 		close("*");							//close all open images
 		}
 	}
-
+*/
 
 function top_layer(mask){
 	//returns the number of the top slice of a stack which is not black
@@ -303,10 +303,10 @@ function bottom_layer(mask){
 	}
 
 
-function progress(k) {
+function progress(p) {
 	//function which updates the progress bar
 	
-	print(title, "\\Update:" + k + "/" + 100 + " (" + k + "%)\n" + getBar(k, 100));		//Update the progress bar
+	print(title, "\\Update:" + p + "/" + 100 + " (" + p + "%)\n" + getBar(p, 100));		//Update the progress bar
 	}
 
 
@@ -424,8 +424,9 @@ function main(){
 	selectWindow("Progress");													// select window
 	setLocation(0, 0); 															// set location of the window
 	maplist = mapfilelist();													// get maplist from function mapfilelist
-	iteration = 100 /maplist.length;											// calculate the iteration steps of the progress
-	k = 0;																		// set counter k to zero
+	len = lengthOf(maplist);													//get length of maplist
+	iteration = 100 / (len + n - 1);											// calculate the iteration steps of the progress
+	p = 0;																		// set counter k to zero
 	
 	
 	//Registration with "elastix" - one transformation file for every Mask slice - histo mask pair a transformation file 
@@ -532,8 +533,8 @@ function main(){
 		close("result.raw");
 		close(histo_input);
 
-		progress(k);		//update the progress bar
-		k += iteration;		//increase counter by one
+		progress(p);		//update the progress bar
+		p += iteration;		//increase counter by one
 	}
 	
 	
@@ -561,14 +562,14 @@ function main(){
 	
 		//consider/interpolate only slices between bottom and top mask
 		if (i <= mask_top){
-			//progress(k);		//update the progress bar
-			//k += iteration;		//increase counter by one
+			progress(p);		//update the progress bar
+			p += iteration;		//increase counter by one
 			continue;
 			}
 	
 		if (i >= mask_bottom){
-			//progress(k);		//update the progress bar
-			//k += iteration;		//increase counter by one
+			progress(p);		//update the progress bar
+			p += iteration;		//increase counter by one
 			continue;
 			}
 	
@@ -648,8 +649,8 @@ function main(){
 			
 			}
 
-			//progress(k);		//update the progress bar
-			//k += iteration;		//increase counter by one
+			progress(p);		//update the progress bar
+			p += iteration;		//increase counter by one
 		}
 		
 	close(Output_Stack);				//close the damage_stack
