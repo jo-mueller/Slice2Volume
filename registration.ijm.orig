@@ -1,4 +1,4 @@
-<<<<<<< .merge_file_a14384
+<<<<<<< .merge_file_a10712
 //script to registrate the dapi images on the ct image
 //output is the Damage_Stack_int which includes all registered and interpolated dapi images
 
@@ -10,6 +10,24 @@ if (isOpen("Progress")) {
 	close("Progress");
 }
 
+#@ String (visibility=MESSAGE, value="Elastix parameters", required=false) a
+#@ File (label="Elastix parameter file", style="file") elastix_parameters
+#@ File (label="Elastix installation directory", style="directory") elastix_dir
+
+#@ String (visibility=MESSAGE, value="Input data", required=false) b
+#@ File (label="Microscopy input", style="directory") dir_gH2AX
+=======
+//script to registrate the dapi images on the ct image
+//output is the Damage_Stack_int which includes all registered and interpolated dapi images
+
+
+
+//clean up
+close("*");
+if (isOpen("Progress")) {
+	
+close("Progress");
+}
 
 #@ String (visibility=MESSAGE, value="Elastix parameters", required=false) a
 #@ File (label="Elastix parameter file", style="file") elastix_parameters
@@ -17,13 +35,13 @@ if (isOpen("Progress")) {
 
 #@ String (visibility=MESSAGE, value="Input data", required=false) b
 #@ File (label="Microscopy input", style="directory") dir_gH2AX
->>>>>>> .merge_file_a11752
+>>>>>>> .merge_file_a14032
 #@ File (label="Target Volume input", style="file") TrgVolume
 
 #@ Integer (label="Mask channel", value=3) channel_mask
 #@ Integer (label="Data channel", value=5) channel_data
 
-<<<<<<< .merge_file_a14384
+<<<<<<< .merge_file_a10712
 #@ String (visibility=MESSAGE, value="Matching parameters", required=false) c
 #@ Integer (label="Distance between subsequent sections (microns)") d_slice
 #@ Integer (label="Target volume voxel size (microns)") d_CT
@@ -33,7 +51,7 @@ if (isOpen("Progress")) {
 #@ Integer (label="Distance between subsequent sections (microns)") d_slice
 #@ Integer (label="Target volume voxel size (microns)") d_CT
 #@ Integer (label="Discarded tissue (microns)") shift
->>>>>>> .merge_file_a11752
+>>>>>>> .merge_file_a14032
 #@ Integer (label="Histo Outline smoothing degree", value=1) n_smoothing_hist
 #@ Integer (label="Volume outline smoothing degree", value=3) n_smoothing_vol
 #@ String (label="Exclude labels from Atlas", value = "102, 337-350") exclude_labels
@@ -41,7 +59,7 @@ if (isOpen("Progress")) {
 
 setBatchMode(use_batch);
 
-<<<<<<< .merge_file_a14384
+<<<<<<< .merge_file_a10712
 
 // Create output directories for trafo file and result
 getDateAndTime(year, month, dayOfWeek, dayOfMonth, hour, minute, second, msec);
@@ -50,6 +68,17 @@ outdir = File.getParent(dir_gH2AX) + "\\" +
 		d2s(hour,0) + d2s(minute,0) + d2s(second, 0) + 
 		"_ResultOf_" + topdir(dir_gH2AX) + "_2_" + "Volume" + "\\";
 dir_trafo = outdir + "trafo\\";
+=======
+
+
+// Create output directories for trafo file and result
+getDateAndTime(year, month, dayOfWeek, dayOfMonth, hour, minute, second, msec);
+outdir = File.getParent(dir_gH2AX) + "\\" + 
+		d2s(year,0) + d2s(month + 1,0) + d2s(dayOfMonth, 0) + "_" + 
+		d2s(hour,0) + d2s(minute,0) + d2s(second, 0) + 
+		"_ResultOf_" + topdir(dir_gH2AX) + "_2_" + "Volume" + "\\";
+dir_trafo = outdir + "trafo\\";
+>>>>>>> .merge_file_a14032
 dir_res = outdir + "results\\";
 
 
@@ -72,7 +101,7 @@ function LoadAndSegmentAtlas(filename, exclude_labels){
 			substr = split(exclude_labels[i], "-");
 			for (j = parseInt(substr[0]); j <= parseInt(substr[1]); j++) {
 				labels = Array.concat(labels, j);
-<<<<<<< .merge_file_a14384
+<<<<<<< .merge_file_a10712
 =======
 			}
 		// if single number is given
@@ -119,7 +148,7 @@ function mapfilelist(){
 	for (i = 0; i < lengthOf(Filelist); i++) {				//loop over all files in gH2AX folder
 		if(!endsWith(Filelist[i], "map.tif")){				//take only map.tif files
 			continue;
->>>>>>> .merge_file_a11752
+>>>>>>> .merge_file_a14032
 			}
 		// if single number is given
 		} else {
@@ -127,7 +156,7 @@ function mapfilelist(){
 		}
 	}
 
-<<<<<<< .merge_file_a14384
+<<<<<<< .merge_file_a10712
 	// now remove undesried labels from atlas
 	open(filename);
 	TrgVolume = File.nameWithoutExtension;
@@ -325,7 +354,7 @@ function StackMaskin(path, deg_smoothing){
 		run("Duplicate...", " ");	//Creates a new window containing a copy of the active image
 		rename(mask);				//rename duplicated image
 		close(name);				//close original image
->>>>>>> .merge_file_a11752
+>>>>>>> .merge_file_a14032
 	
 	//Returns an array containing the names of the files in the folder.
 	Filelist = getFileList(path);
@@ -353,7 +382,7 @@ function StackMaskin(path, deg_smoothing){
 		//Create Mask from DAPI image
 		selectWindow(mask);			//Activates the window with the title "mask"
 		setThreshold(4, 1e30);		//Sets the lower and upper threshold levels of image 
-<<<<<<< .merge_file_a14384
+<<<<<<< .merge_file_a10712
 		run("Convert to Mask");		//Converts an image to black and white.
 	
 		//Postprocess
@@ -401,13 +430,13 @@ function top_layer(mask){
 		run("Measure");																//run measure
 		sumpixval[i - 1] = getResult("RawIntDen", nResults - 1);					//sum of all pixelvalues for current image
 		i = i + 1; 																	//increase i by one
->>>>>>> .merge_file_a11752
+>>>>>>> .merge_file_a14032
 		}
 		for (j = 0; j < deg_smoothing; j++) {
 			run("Dilate");
 			run("Dilate");
 		}
-<<<<<<< .merge_file_a14384
+<<<<<<< .merge_file_a10712
 		
 		run("Fill Holes");					//fill holes
 		run("Rotate 90 Degrees Left");		//rotates image by 90 degrees
@@ -536,7 +565,7 @@ function extractMask(image, s, savepath, n_smoothing){
 	print("First non-zero volume slice = " + d2s(top_slice, 0));
 	run("Clear Results");
 	return top_slice;			//return value
->>>>>>> .merge_file_a11752
+>>>>>>> .merge_file_a14032
 	}
 	
 	return mask;
@@ -648,7 +677,7 @@ function main(){
 		for (k = 0; k < n_smoothing_vol; k++) {
 			run("Erode");
 		}
-<<<<<<< .merge_file_a14384
+<<<<<<< .merge_file_a10712
 		for (k = 0; k < n_smoothing_vol; k++) {
 			run("Dilate");
 		}
@@ -689,7 +718,7 @@ function getBar(p1, p2) {
     if (index > N - 1) index = N - 1;
     return substring(bar2, 0, index) + substring(bar1, index + 1, N);	//return the bar
 	}
->>>>>>> .merge_file_a11752
+>>>>>>> .merge_file_a14032
 
 function extractMask(image, s, savepath, n_smoothing){
 	// Creates a mask of channel <s> in image <image>
@@ -753,7 +782,7 @@ function CoM_alignment(image, target){
 	return output;
 }
 
-<<<<<<< .merge_file_a14384
+<<<<<<< .merge_file_a10712
 		Mask_2D = CoM_alignment(Mask_2D, Mask_3D);	// Center of Mass alignment of Mask 2D and Mask 3D
 
 =======
@@ -836,7 +865,7 @@ function main(){
 
 		Mask_2D = CoM_alignment(Mask_2D, Mask_3D);	// Center of Mass alignment of Mask 2D and Mask 3D
 
->>>>>>> .merge_file_a11752
+>>>>>>> .merge_file_a14032
 		//settings for elastix (registration program)
 		FixedImage = dir_trafo + Mask_3D + "_" + i;		// Volume mask = target image 
 		MovingImage = dir_trafo + Mask_2D + "_" + i;	// Histo mask = moving image which gets registered based on the target image
@@ -845,16 +874,16 @@ function main(){
 		selectWindow(Mask_2D);
 		//getLocationAndSize(x, y, width, height);
 		//setLocation(screenWidth/2 - width, 0);
-<<<<<<< .merge_file_a14384
+<<<<<<< .merge_file_a10712
 		saveAs("tiff", MovingImage);	//save; that is the correct masked slice for the ith histomask
 =======
 		saveAs("tiff", MovingImage);	//save; that is the correct masked slice for the ith histomask
->>>>>>> .merge_file_a11752
+>>>>>>> .merge_file_a14032
 		close();
 
 		selectWindow(Mask_3D);
 		//setLocation(screenWidth/2, 0);
-<<<<<<< .merge_file_a14384
+<<<<<<< .merge_file_a10712
 		saveAs("tiff", FixedImage);	//save; that is the correct masked slice of volume mask
 		rename(Mask_3D);
 	
@@ -904,7 +933,7 @@ function main(){
 	    File.delete(FixedImage);									//delete saved fixed image
 	    File.delete(MovingImage);									//delete saved moving image
 	
->>>>>>> .merge_file_a11752
+>>>>>>> .merge_file_a14032
 		// Now run transformix based on determined transformation file.
 		selectWindow(histo_input);
 		setSlice(channel_data);
@@ -930,7 +959,7 @@ function main(){
 		setSlice(mask_top + dist_from_top);			//set the right slice for this specific dapi image
 		setMetadata("Label", Filelist[i]);			//Sets damage_ratio_map as the label of the current damage_stack slice
 		run("Paste");								//copy dapi image in damage_stack
-<<<<<<< .merge_file_a14384
+<<<<<<< .merge_file_a10712
 
 		close(Data_2D);
 		close(Mask_2D);
@@ -1174,4 +1203,4 @@ main();
 	}
 
 main();
->>>>>>> .merge_file_a11752
+>>>>>>> .merge_file_a14032
