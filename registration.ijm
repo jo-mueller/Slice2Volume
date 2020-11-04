@@ -137,96 +137,7 @@ function parseName(string){
 	dist_from_top = floor((number * d_slice + shift) / d_CT + 0.5);   //index of according CT slice noting the different slice distances
 
 	return dist_from_top;										//returns slice location number
-	}
-
-
-function reslice(mask){
-	//this function reslices all coronal brain-mask-slices (acquired from MITK software) 
-	//into axial brain-mask-slices (from top to bottom)
-
-	//open the file
-	open(mask);
-
-	// check if the image is actually binary.
-	if(!is("binary")){
-		print("WARNING: Input input is not a binary image. Attempting auto-conversion...");
-		bd = bitDepth();
-		setThreshold(1, 2^bd, "dark");
-		run("Convert to Mask", "stack");
-
-		// assure propper display
-		if (is("Inverting LUT")) {
-			run("Invert LUT");
-		}
-	}
-	
-	//reslice coronal into axial (output=sclice distance in microns, start with top slice)
-	run("Reslice [/]...", "output=100 start=Top avoid interpolation");
-	
-	//close the coronal mask
-	name = split(mask, "\\");			//split the root
-	name = name[name.length - 1];		//pick the file name of the root
-	close(name);						//close the mask
-	}
-
-
-function StackMaskin(path, deg_smoothing){
-	//this function browses a list of ratio maps of the brain and 
-	//extracts a external contour (=masks) for each slice
-	
-	// append // to path if not present
-	if (!endsWith(path, "\\")) {
-		path = path + "\\";
-	}
-	
-	//Returns an array containing the names of the files in the folder.
-	Filelist = getFileList(path);
-	
-	//loop over all images
-	for (i = 0; i < lengthOf(Filelist); i++) {			
-		//pick only the files which end with map.tif
-		if(!endsWith(Filelist[i], "map.tif")){
-		continue;
-		}
-		
-		// Open maps
-		open(path + Filelist[i]);
-		name = File.nameWithoutExtension;				//name with extension removed.
-		index = indexOf(name, "_map"); 					//Returns the index within current element of the first occurrence of "_map"
-		mask = substring(name, 0, index) + "_DAPImask";	//define mask variable
-		rename(name);									//Changes the title of the active image
-	
-		//Copy DAPI map
-		setSlice(4);				//Displays the 4th slice of the active stack.
-		run("Duplicate...", " ");	//Creates a new window containing a copy of the active image
-		rename(mask);				//rename duplicated image
-		close(name);				//close original image
-	
-		//Create Mask from DAPI image
-		selectWindow(mask);			//Activates the window with the title "mask"
-		setThreshold(4, 1e30);		//Sets the lower and upper threshold levels of image 
-		run("Convert to Mask");		//Converts an image to black and white.
-	
-		//Postprocess
-		run("Fill Holes");			//fills holes in objects by filling the background
-		
-		//Adds/removes pixels to the edges of objects in a binary image->makes image smoother
-		for (j = 0; j < deg_smoothing; j++) {
-			run("Erode");
-			run("Erode");
-		}
-		for (j = 0; j < deg_smoothing; j++) {
-			run("Dilate");
-			run("Dilate");
-		}
-		
-		run("Fill Holes");					//fill holes
-		run("Rotate 90 Degrees Left");		//rotates image by 90 degrees
-		saveAs(".tiff", path + mask);		//saves mask
-		close("*");							//close all open images
-		}
-	}
-
+}
 
 function top_layer(mask){
 	//returns the number of the top slice of a stack which is not black
@@ -390,10 +301,6 @@ function main(){
 	Output_Stack_int = "Interpolated_Output_Stack";
 	Mask_3D = "Mask_3D";
 	Data_2D = "Data_2D";
-
-
-	//run "gH2AX_StackMaskin.ijm" script which creates the dapi image masks in the "gH2AX" folder
-	//StackMaskin(dir_gH2AX, n_smoothing);
 	
 	//Returns an array containing the names of the files, here all gH2AX files (contains all dapimasks)
 	Filelist = getFileList(dir_gH2AX);
@@ -475,6 +382,8 @@ function main(){
 		//setLocation(screenWidth/2, 0);
 		saveAs("tiff", FixedImage);	//save; that is the correct masked slice of volume mask
 		rename(Mask_3D);
+		
+		waitForUser("blubb");
 	
 		//execute elastix
 		exec(elastix_dir + "\\elastix.exe",						//elastix installation directory

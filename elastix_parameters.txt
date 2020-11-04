@@ -1,50 +1,48 @@
-// Registration type and runtime parameters
+// General settings
 (Transform "AffineTransform")
-(MaximumNumberOfIterations 1000)
-(ImagePyramidSchedule 10 10 10)
+(MaximumNumberOfIterations 5000)
 (NumberOfSpatialSamples 15000)
-(FinalGridSpacingInVoxels 50 50 50 )
+(FinalGridSpacingInVoxels 2 2 2)
 (Registration "MultiResolutionRegistration")
 (CheckNumberOfSamples "false" )
-(NumberOfResolutions 1)
+(NumberOfResolutions 3)
 
-// Generation of smoothed representation of input images?
 (FixedImagePyramid "FixedSmoothingImagePyramid" )
 (MovingImagePyramid "MovingSmoothingImagePyramid" )
 
-// Initial transformation
+// Initial Registration
 (AutomaticTransformInitialization "true")
-(AutomaticTransformInitializationMethod "GeometricalCenter")
+(AutomaticTransformInitializationMethod "CenterOfGravity")
 
-// How to spread the sample points in the images
-(ImageSampler "Random" )
+// Image sampling
+(ImageSampler "RandomCoordinate" )
 (NewSamplesEveryIteration "true")
-(ResultImagePixelType "float")
-(DefaultPixelValue 0)
-(Optimizer "AdaptiveStochasticGradientDescent")
 
-// Control output during registration. 
-// Not needed if you're only interested in the result
+(ResultImagePixelType "unsigned short")
+(DefaultPixelValue 0)
+
+// Registration algorithm
+(Optimizer "AdaptiveStochasticGradientDescent")
 (WriteTransformParametersEachIteration "false")
 (WriteTransformParametersEachResolution "false")
-(WriteResultImageAfterEachResolution "false")
+(WriteResultImageAfterEachResolution "true")
 (WritePyramidImagesAfterEachResolution "false")
-
-// Pixel types of output image data.
-// Set to float if your input data are floats
-// Will lead to weird output if you co-align unsigned int, but transform float images
 (FixedInternalImagePixelType "float")
 (MovingInternalImagePixelType "float")
 (UseDirectionCosines "false")
 
-// About interpolation of involved images.
-// Set ResampleInterpolator to NearestNeighbour for Atlas registration 
-(Interpolator "NearestNeighborInterpolator" )
-(ResampleInterpolator "FinalLinearInterpolator")
+// Interpolation
+(Interpolator "LinearInterpolator" )
+(ResampleInterpolator "FinalNearestNeighborInterpolator")
+
+//Parameter estimation
 (AutomaticParameterEstimation "true")
 (AutomaticScalesEstimation "true")
 (Metric "AdvancedMattesMutualInformation" )
 (NumberOfHistogramBins 32)
 (HowToCombineTransforms "Compose")
 (ErodeMask "false")
-(WriteResultImage "false")
+
+// Output control
+(WriteResultImage "true")
+(ResultImageFormat "tif")
