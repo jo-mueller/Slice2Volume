@@ -16,25 +16,6 @@ if (isOpen("Progress")) {
 
 #@ String (visibility=MESSAGE, value="Input data", required=false) b
 #@ File (label="Microscopy input", style="directory") dir_gH2AX
-=======
-//script to registrate the dapi images on the ct image
-//output is the Damage_Stack_int which includes all registered and interpolated dapi images
-
-
-
-//clean up
-close("*");
-if (isOpen("Progress")) {
-	
-close("Progress");
-}
-
-#@ String (visibility=MESSAGE, value="Elastix parameters", required=false) a
-#@ File (label="Elastix parameter file", style="file") elastix_parameters
-#@ File (label="Elastix installation directory", style="directory") elastix_dir
-
-#@ String (visibility=MESSAGE, value="Input data", required=false) b
-#@ File (label="Microscopy input", style="directory") dir_gH2AX
 >>>>>>> origin/dev_moritz
 #@ File (label="Target Volume input", style="file") TrgVolume
 
@@ -59,7 +40,6 @@ close("Progress");
 
 setBatchMode(use_batch);
 
-<<<<<<< HEAD
 
 // Create output directories for trafo file and result
 getDateAndTime(year, month, dayOfWeek, dayOfMonth, hour, minute, second, msec);
@@ -101,8 +81,6 @@ function LoadAndSegmentAtlas(filename, exclude_labels){
 			substr = split(exclude_labels[i], "-");
 			for (j = parseInt(substr[0]); j <= parseInt(substr[1]); j++) {
 				labels = Array.concat(labels, j);
-<<<<<<< HEAD
-=======
 			}
 		// if single number is given
 		} else {
@@ -148,7 +126,6 @@ function mapfilelist(){
 	for (i = 0; i < lengthOf(Filelist); i++) {				//loop over all files in gH2AX folder
 		if(!endsWith(Filelist[i], "map.tif")){				//take only map.tif files
 			continue;
->>>>>>> origin/dev_moritz
 			}
 		// if single number is given
 		} else {
@@ -156,7 +133,6 @@ function mapfilelist(){
 		}
 	}
 
-<<<<<<< HEAD
 	// now remove undesried labels from atlas
 	open(filename);
 	TrgVolume = File.nameWithoutExtension;
