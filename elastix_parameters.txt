@@ -1,12 +1,14 @@
 // Registration type and runtime parameters
 (Transform "AffineTransform")
 (MaximumNumberOfIterations 1000)
-(ImagePyramidSchedule 10 10 10)
-(NumberOfSpatialSamples 15000)
-(FinalGridSpacingInVoxels 50 50 50 )
-(Registration "MultiResolutionRegistration")
+(NumberOfSpatialSamples 20000)
 (CheckNumberOfSamples "false" )
-(NumberOfResolutions 1)
+
+(FinalGridSpacingInVoxels 8 8 8)
+
+(Registration "MultiResolutionRegistration")
+(NumberOfResolutions 3)
+(FixedImagePyramidSchedule 48 48 8 8 1 1)
 
 // Generation of smoothed representation of input images?
 (FixedImagePyramid "FixedSmoothingImagePyramid" )
@@ -14,7 +16,8 @@
 
 // Initial transformation
 (AutomaticTransformInitialization "true")
-(AutomaticTransformInitializationMethod "GeometricalCenter")
+(AutomaticTransformInitializationMethod "GeometricCenter")
+(AutomaticScalesEstimation "true")
 
 // How to spread the sample points in the images
 (ImageSampler "Random" )
@@ -27,7 +30,7 @@
 // Not needed if you're only interested in the result
 (WriteTransformParametersEachIteration "false")
 (WriteTransformParametersEachResolution "false")
-(WriteResultImageAfterEachResolution "false")
+(WriteResultImageAfterEachResolution "true")
 (WritePyramidImagesAfterEachResolution "false")
 
 // Pixel types of output image data.
@@ -39,12 +42,13 @@
 
 // About interpolation of involved images.
 // Set ResampleInterpolator to NearestNeighbour for Atlas registration 
-(Interpolator "NearestNeighborInterpolator" )
+(Interpolator "LinearInterpolator" )
 (ResampleInterpolator "FinalLinearInterpolator")
 (AutomaticParameterEstimation "true")
-(AutomaticScalesEstimation "true")
+
 (Metric "AdvancedMattesMutualInformation" )
 (NumberOfHistogramBins 32)
 (HowToCombineTransforms "Compose")
 (ErodeMask "false")
-(WriteResultImage "false")
+(WriteResultImage "true")
+(ResultImageFormat "tif")
