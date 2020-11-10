@@ -1,14 +1,14 @@
 // Registration type and runtime parameters
 (Transform "AffineTransform")
-(MaximumNumberOfIterations 1000)
+(MaximumNumberOfIterations 2000)
 (NumberOfSpatialSamples 20000)
 (CheckNumberOfSamples "false" )
 
 (FinalGridSpacingInVoxels 8 8 8)
 
 (Registration "MultiResolutionRegistration")
-(NumberOfResolutions 3)
-(FixedImagePyramidSchedule 48 48 8 8 1 1)
+(NumberOfResolutions 5)
+(FixedImagePyramidSchedule 56 56 16 16 8 8 2 2 1 1)
 
 // Generation of smoothed representation of input images?
 (FixedImagePyramid "FixedSmoothingImagePyramid" )

@@ -29,11 +29,17 @@ close("Progress");
 #@ Integer (label="Volume outline smoothing degree", value=3) n_smoothing_vol
 #@ String (label="Exclude values/labels from Volume", value = "102, 337-350") exclude_labels
 #@ String (label="Inital input rotation (CW, degrees)", value = "0") init_rotation
-#@ boolean  (label = "Batch mode", value=true) use_batch
+#@ Boolean (label = "Batch mode?", value=true) use_batch
+#@ String (label = "Symmetry correction?", choices={"None", "X-Axis", "Y-Axis"}, style="radioButtonHorizontal") symmetry_guard_axis
+
 
 // file path format
 if (!endsWith(dir_2D, "/") && !endsWith(dir_2D, "\\")) {
 	dir_2D = dir_2D + "\\";
+}
+
+if (use_batch) {
+	setBatchMode(true);
 }
 
 // Global Variables
@@ -42,6 +48,7 @@ var InputSizeChecked = false;		// flag for the image size check of the 2D input 
 var DownSamplingFactor = 1.0;
 var MaskSlice = 1;					// Default value for 2D slice to be masked
 var DataSlice = 1;					// Default value for 2D slice to be transformed
+var Correction_Angle = 0;			// Correctional angle to make volume symmetric along a defined axis. 
 
 var OverviewTable = "OverviewTable"; 
 
@@ -63,9 +70,13 @@ function main(){
 	// First: Process the volumetric input and make corresponding output image
 	// Also: Put the windows on screen so they're nicely displayed next to each other
 	Volume = LoadAndSegmentAtlas(TrgVolume, exclude_labels, n_smoothing_vol);
+
+	// Run Symmetry guard check
+	Volume = SymmetryGuard_Detect(Volume, symmetry_guard_axis);	
+	
 	getDimensions(width, height, channels, slices, frames);
 	setLocation(0, 200, width, height);
-	newImage(Output_Stack, "8-bit black", getWidth(), getHeight(), nSlices);
+	newImage(Output_Stack, "32-bit black", getWidth(), getHeight(), nSlices);
 	setLocation(width, 200, width, height);
 	
 	// Second: Determine boundaries of Volume image along the z-direction
@@ -82,7 +93,7 @@ function main(){
 		MovingMask = "MovingMask";
 		MovingData = "MovingData";
 
-		// Make binary mask
+		
 		MovingMask = GenerateMask(MovingMask, n_smoothing_hist);
 
 		// Find corresponding slice in Volume based on filename
@@ -111,18 +122,236 @@ function main(){
 								ListOfImages[i]);					// currently processed input image
 
 		// Paste to output stack
-		PasteToStack(TrnsfmdImg, Output_Stack);
+		PasteToStack(TrnsfmdImg, Output_Stack, depth);
 
 		// Print to protocol
 		print(OverviewTable, i+1+"\t"+ListOfImages[i]+"\t"+(depth - boundaries[0])*d_Volume + "microns\t"+depth);
 		close(TargetMask + ".tif"); close(MovingData + ".tif"); close(MovingMask + ".tif");
 	}
-
-	// Post-process: Interpolate missing slices
 	
+	// Post-process: Interpolate missing slices
+	Interpolated_Output = Interpolate_Stack(Output_Stack, boundaries);
+	
+	// Apply Symmetry guard
+	//Interpolated_Output = SymmetryGuard_Apply(Interpolated_Output, symmetry_guard_axis);
+	Output_Stack = SymmetryGuard_Apply(Output_Stack, symmetry_guard_axis);
+
+	// Save Output
+	SaveOutput(Output_Stack, Interpolated_Output, dir_res);
 }
 
 //================================== FUNCTIONS =====================
+
+function SymmetryGuard_Apply(Image, axis){
+	/*
+	 * Applies a previously determined correction rotation along a defined <axis>
+	 * to the given input Volume <Image>
+	 */
+
+	// First test if symmetry guard was activated at all
+	if (axis == "None") {
+		return Image;
+	}
+
+	selectWindow(Image);
+	if (axis == "Y-Axis") {
+		run("Reslice [/]...", "output=1.000 start=Top");
+		vol = getTitle();
+	}
+	if (axis == "X-Axis") {
+		run("Reslice [/]...", "output=1.000 start=Left");
+		vol = getTitle();
+	}
+	close(Image);
+
+	// Apply rotation to resliced image
+	run("Rotate... ", "angle=" + d2s(Correction_Angle, 2) + " grid=1 interpolation=None fill stack");
+
+	// return to original axis configuration
+	if (axis == "Y-Axis") {
+		run("Reslice [/]...", "output=1.000 start=Top");
+		output = getTitle();
+	}
+	if (axis == "X-Axis") {
+		run("Reslice [/]...", "output=1.000 start=Left");
+		output = getTitle();
+	}
+	close(vol);
+	selectWindow(output);
+	rename(Image);
+	return Image;
+}
+
+function SymmetryGuard_Detect(Volume, axis){
+	/*
+	 * This function checks whether the binary input <Volume> is symmetrical along a
+	 * defined symmetry plane that is not (!) the image plane. The symmetry plane
+	 * of interest is defined by the <axis> parameter.
+	 */
+
+	// First test if symmetry guard was activated at all
+	if (axis == "None") {
+		return Volume;
+	}
+
+	if (axis == "Y-Axis") {
+		run("Reslice [/]...", "output=1.000 start=Top avoid");
+		vol = getTitle();
+	}
+	if (axis == "X-Axis") {
+		run("Reslice [/]...", "output=1.000 start=Left avoid");
+		vol = getTitle();
+	}
+	close(Volume);
+	selectWindow(vol);
+	
+	// Prep measurement
+	run("Set Measurements...", "area mean display redirect=None decimal=2");
+	BBox = "BBox";
+	BBox_rot = "BBox_rotated";
+	setBatchMode(true);
+	
+	// Have binary atlas selected and create maximum intensity projection.
+	// Then crop part of image that holds information
+	selectWindow(vol);
+	run("Z Project...", "projection=[Max Intensity]");
+	Projection = getTitle();
+	run("Select Bounding Box");
+	run("Duplicate...", "title=" + BBox);
+
+	// predefined range of acceptable rotation angles
+	alpha_min = -10;
+	alpha_max = 10;
+	N_angles = 40;
+	symm_results = newArray(N_angles);
+	angles = newArray(N_angles);
+
+	// iteratively rotate images by a range of angles.
+	// Then evaluate symmetry for every angle
+	for (i = 0; i < N_angles; i++) {
+		alpha = alpha_min + i*(alpha_max - alpha_min)/N_angles;
+		selectWindow(BBox);
+		run("Duplicate...", "title=" + BBox_rot);
+		run("Rotate... ", "angle=" + alpha + " grid=1 interpolation=None fill");
+		
+		// evaluate and store symmetry descriptors
+		symm = eval_symmetry(BBox_rot);
+		symm_results[i] = symm;
+		angles[i] = alpha;
+		close(BBox_rot);
+	}
+	close(BBox);
+	close(BBox_rot);
+	close(Projection);
+
+	// Find best angle and return
+	threshold = 1000000;
+	index = 0;
+	
+	for (i = 0; i < angles.length; i++){
+		if (symm_results[i] < threshold) {
+			threshold = symm_results[i];
+			index = i;
+		}
+	}
+	setBatchMode(false);
+
+	// Apply rotation
+	selectWindow(vol);
+	Correction_Angle = angles[index];
+	print("Rotating volume by angle=" + d2s(Correction_Angle, 2) + " along " + axis);
+	run("Rotate... ", "angle=" + d2s(Correction_Angle, 2) + " grid=1 interpolation=None fill stack");
+
+	// Undo reslice according to direction settings from above and return.
+	if (axis == "Y-Axis") {
+		run("Reslice [/]...", "output=1.000 start=Top avoid");
+		output = getTitle();
+	}
+	if (axis == "X-Axis") {
+		run("Reslice [/]...", "output=1.000 start=Left avoid");
+		output = getTitle();
+	}
+	output = getTitle();
+	rename(Volume);
+	close(vol);
+	
+	return Volume;
+}
+
+function eval_symmetry(image){
+	/*
+	 * Evaluates the symmetry of a given <image> along the LR-direction.
+	 * Does so by flipping the image horizontally and calculating the difference between the 
+	 * flipped/unflipped image
+	 */
+	
+	// Make mirrored copy
+	selectWindow(image);
+	mirrored = image + "_mirrored";
+	run("Duplicate...", "title="+mirrored);
+
+	// flip mirror
+	selectWindow(mirrored);
+	run("Flip Horizontally");
+
+	// calc difference
+	imageCalculator("Difference create 32-bit", image, mirrored);
+	output = getTitle();
+	selectWindow(output);
+	run("Measure");
+	mean = getResult("Mean", nResults - 1);
+
+	// clean up and return
+	close(mirrored);
+	close(output);
+	return mean;
+}
+
+function SaveOutput(V, V_int, outdir){
+	/*
+	 * Saves all relevant settings and output to a separate directory <outdir>
+	 * Store are: Raw output volume <V> and interpolated volume <V_int>
+	 */
+
+	// add ID string to name if it was set
+	name_raw = "OutputStack";
+	name_int = "OutputStack_interpolated";
+	if (ID_string != "") {
+		name_raw += "_" + ID_string;
+		name_int += "_" + ID_string;
+	}
+
+	 selectWindow(V);
+	 saveAs(".tif", outdir + name_raw);
+
+	 selectWindow(V_int);
+	 saveAs(".tif", outdir + name_raw);
+	 saveAs(".tif", outdir + name_int);
+
+	 selectWindow("OverviewTable");
+	 saveAs("Text", outdir + "SliceAssignment_Overview");
+
+	 f = File.open(outdir + "S2V_LogFile.txt");
+	 
+	 print(f, "Input data:");
+	 print(f, "Input Volume\t" + TrgVolume);
+	 print(f, "Microscopy input\t" + dir_2D);
+	 print(f, "Subdir specification\t" + subdir_path);
+	 print(f, "ID string\t" + ID_string);
+
+	 print(f, "Parameters:");
+	 print(f, "Cut distance\t" + d_slice);
+	 print(f, "Volume slice distance\t" + d_Volume);
+	 print(f, "Discarded tissue\t" + shift);
+
+	print(f, "Processing parameters:");
+	print(f, "Histological outline smoothing:\t" + n_smoothing_hist);
+	print(f, "Volumetric outline smoothing:\t" + n_smoothing_vol);
+	print(f, "Initial rotation:\t" + init_rotation);
+	print(f, "Exluded fields from volume:\t" + exclude_labels);
+	print(f, "Correction angle:\t" + Correction_Angle + " degree along " + symmetry_guard_axis); 
+	close(f);	 
+}
 
 function Interpolate_Stack(Vol, zBoundaries) {
 	/*
@@ -130,8 +359,9 @@ function Interpolate_Stack(Vol, zBoundaries) {
 	 * <zBoundaries[0]> and <zBoundaries[1]>. 
 	 */
 
+	int_outStack = "Interpolated_output_stack";
 	selectWindow(Vol);
-	run("Duplicate...", "title=Interpolated_output_stack duplicate");
+	run("Duplicate...", "title="+int_outStack+" duplicate");
 	output = getTitle();
 
 	selectWindow(Vol);
@@ -155,6 +385,12 @@ function Interpolate_Stack(Vol, zBoundaries) {
 
 			//loop to obtain the next non black slice and duplicate it
 			for (k = 0; k < nSlices; k++) {
+				
+				if (i + k +1 == nSlices) {
+					close("a");
+					close("b");
+					return int_outStack;
+				}
 
 				setSlice(i + k + 1);				//set slice i+k
 				run("Measure");
@@ -190,8 +426,8 @@ function Interpolate_Stack(Vol, zBoundaries) {
 				//insert the interpolated slice into damage stack
 				selectWindow("c");					//select the interpolated slice "c"
 				run("Copy");						//copy the slice
-				selectWindow(Output_Stack_int);		//select the damage_stack_int
-				setSlice(i + l);					//set slice i + l
+				selectWindow(int_outStack);		//select the damage_stack_int
+				setSlice(i + k);					//set slice i + l
 				run("Paste");						//paste the interpolated slice
 		
 				//Clean up
@@ -210,9 +446,9 @@ function Interpolate_Stack(Vol, zBoundaries) {
 			close("a");											//close "a"
 			close("b");											//close "b"
 			
-			}
-	 	
-	 }
+		}
+	}
+	return int_outStack;
 }
 
 function beautifyDisplay(w, h){
@@ -229,9 +465,9 @@ function beautifyDisplay(w, h){
 	setLocation(4*width, 200, width, height);
 }
 
-function PasteToStack(image, V){
+function PasteToStack(image, V, k){
 	/*
-	 * Copies the contents of <image> and pastes them to the currently selected slice of Volume <V>
+	 * Copies the contents of <image> and pastes them to slice <s> of Volume <V>
 	 * Checks whether dimensions match.
 	 */
 
@@ -251,6 +487,7 @@ function PasteToStack(image, V){
 	selectWindow(image);
 	run("Copy");
 	selectWindow(V);
+	setSlice(k);
 	run("Paste");
 	close(image);
 	 
@@ -307,10 +544,13 @@ function findLocationInVol(filename, Vol, OutStack, Vol_bounds, DistFromTop, Sam
 	// Other inputs: Discarded tissue <DistFromTop> in microns as well as Volume mask boundaries <Vol_bounds>, tissue cut distance <d_Cut>,
 	// number of samples per object carrier and volume voxel size <d_Vol>
 
+	// Returns: index of slice in Volume
+
 	// First, reformat filestring and look for the "Scene" keyword
 	filestring = replace(filename, File.separator, "/");
 	filestring = replace(filestring, ".tif", "_tif");
 	filestring = replace(filestring, "-|/" , "_");
+	print(filestring);
 
 	filestring = split(filestring, "_");
 	for (i = 0; i < filestring.length; i++) {
@@ -350,11 +590,13 @@ function GenerateMask(MaskedImage, N_Smooth){
 
 	// Binarize
 	selectWindow(MaskedImage);
+	run("Gaussian Blur...", "sigma=3");
 	setAutoThreshold("Default dark");
 	run("Convert to Mask");
 	
 	// Smooth
 	DilateErode(N_Smooth);
+	selectWindow(MaskedImage);
 	run("Fill Holes");
 	return MaskedImage;
 }
@@ -393,11 +635,11 @@ function Open2DImage(fname, Vol) {
 	w_i = getWidth();
 	h_i = getHeight();
 	if (!InputSizeChecked && (w_i * h_i > 10* w * h)) {
-		DoDownsampling = getBoolean("The input image ("+d2s(w_i, 0) "x" + d2s(h_i,0) +") is much larger than the target volume ("+d2s(w, 0) "x" + d2s(h,0) +").\n"+
+		DoDownsampling = getBoolean("The input image ("+d2s(w_i, 0) + "x" + d2s(h_i,0) +") is much larger than the target volume ("+d2s(w, 0) + "x" + d2s(h,0) +").\n"+
 									"Proceed with downsampled image?");
 		// If desired, adjust settings for downsampling in all following images
 		if (DoDownsampling) {
-			DownSamplingFactor = w/w_i;
+			DownSamplingFactor = 0.5*w/w_i;
 		}
 		InputSizeChecked = true;
 	}
@@ -406,7 +648,7 @@ function Open2DImage(fname, Vol) {
 	selectWindow(image);
 	if (DownSamplingFactor < 1.0) {
 		print("    INFO: Downsampling by factor " + d2s(DownSamplingFactor,3));
-		run("downsample ", "width=" + floor(h * DownSamplingFactor) + " height=" + floor(h * DownSamplingFactor) + " source=0.50 target=0.50");	
+		run("downsample ", "width=" + floor(w_i * DownSamplingFactor) + " height=" + floor(h_i * DownSamplingFactor) + " source=0.50 target=0.50");	
 	} else {
 		print("    INFO: DownSampling not necessary");
 	}
@@ -569,31 +811,48 @@ function LoadAndSegmentAtlas(filename, excl_labels, n_smooth){
 	// Lastly, smooth outline if desired
 	DilateErode(n_smooth);
 	
+	if(is("Inverting LUT")){
+		run("Invert LUT");
+	}
+	
 	return TrgVolume;
 }
 
 function DilateErode(n){
 	// does an erosion-dilation smoothing with <n> iterations on the currently selected image
 
-	if (n <0) {
-		// if n<0: Erode first, dilate later
-		for (i = 0; i < n; i++) {
-			run("Erode", "stack");
+	run("Set Measurements...", "mean area_fraction display redirect=None decimal=2");
+	for (i = 1; i <= nSlices; i++) {
+
+		// Mask selected slice
+		setSlice(i);
+
+		// Check whether there is something to mask
+		run("Measure");
+		af = getResult("Mean", nResults - 1);
+		if (af == 0) {
+			continue;
 		}
-		for (i = 0; i < n; i++) {
-			run("Dilate", "stack");
-		}	
 		
-	} else {
+		setThreshold(128, 255);
+		run("Create Selection");
 		
-		// if n>0: Dilate first, erode later
-		for (i = 0; i < n; i++) {
-			run("Dilate", "stack");
+		if (n <0) {
+			// if n<0: Erode first, dilate later
+			run("Enlarge...", "enlarge=-" + abs(n) + " pixel");
+			run("Enlarge...", "enlarge=" + abs(n) + " pixel");
+			
+		} else {
+			
+			run("Enlarge...", "enlarge=" + abs(n) + " pixel");
+			run("Enlarge...", "enlarge=-" + abs(n) + " pixel");
 		}
-		for (i = 0; i < n; i++) {
-			run("Erode", "stack");
-		}	
+		run("Set...", "value=255 slice");
 	}
+
+	// Remove threshold definition
+	resetThreshold();
+	run("Select None");
 }
 
 function getFileListMod (directory, type, fullpath){
