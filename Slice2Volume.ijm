@@ -72,7 +72,7 @@ function main(){
 	Volume = LoadAndSegmentAtlas(TrgVolume, exclude_labels, n_smoothing_vol);
 
 	// Run Symmetry guard check
-	Volume = SymmetryGuard_Detect(Volume, symmetry_guard_axis);	
+	Volume = SymmetryGuard_Detect(Volume, symmetry_guard_axis);
 	
 	getDimensions(width, height, channels, slices, frames);
 	setLocation(0, 200, width, height);
@@ -85,8 +85,15 @@ function main(){
 	//Returns an array containing the names of the files from the 2D input
 	ListOfImages = getImages(dir_2D, subdir_path, ID_string);
 
+	// Timer variables
+	times = newArray();
+	T = 0;
+
 	// Iterate over all input files
 	for (i = 0; i < ListOfImages.length; i++) {
+
+		// Start timer
+		t0 = getTime();
 
 		// open 2D image and split into mask and data
 		Open2DImage(ListOfImages[i], Volume);
@@ -127,7 +134,16 @@ function main(){
 		// Print to protocol
 		print(OverviewTable, i+1+"\t"+ListOfImages[i]+"\t"+(depth - boundaries[0])*d_Volume + "microns\t"+depth);
 		close(TargetMask + ".tif"); close(MovingData + ".tif"); close(MovingMask + ".tif");
+
+		// Timer
+		dt = getTime() - t0;
+		times = Array.concat(times, dt);
+		T += dt;
 	}
+
+	// Timer output
+	Array.getStatistics(times, min, max, mean, stdDev);
+	print("Total time taken: " + T/1000 + "s, Time per slice: " + mean/1000 + "s");
 	
 	// Post-process: Interpolate missing slices
 	Interpolated_Output = Interpolate_Stack(Output_Stack, boundaries);
@@ -209,7 +225,6 @@ function SymmetryGuard_Detect(Volume, axis){
 	run("Set Measurements...", "area mean display redirect=None decimal=2");
 	BBox = "BBox";
 	BBox_rot = "BBox_rotated";
-	setBatchMode(true);
 	
 	// Have binary atlas selected and create maximum intensity projection.
 	// Then crop part of image that holds information
@@ -254,7 +269,6 @@ function SymmetryGuard_Detect(Volume, axis){
 			index = i;
 		}
 	}
-	setBatchMode(false);
 
 	// Apply rotation
 	selectWindow(vol);
@@ -508,6 +522,23 @@ function RegAndTraf(Elastix_dir, param_file, MovImg, MovData, TrgImg, wdir, outd
 	TrgImg += ".tif";
 	MovData += ".tif";
 	MovImg += ".tif";
+
+	// get a string that identifies this slice correctly
+	filestring = replace(MovData, File.separator, "/");
+	filestring = replace(filestring, ".tif", "_tif");
+	filestring = replace(filestring, "-|/" , "_");
+	print(filestring);
+
+	filestring = split(filestring, "_");
+	for (i = 0; i < filestring.length; i++) {
+		if (filestring[i] == "Scene") {
+			a = parseInt(filestring[i - 1]);
+			b = parseInt(filestring[i + 1]);
+			break;
+		}
+	}
+
+	
 	
 	 // First, call elastix
 	exec(Elastix_dir + "\\elastix.exe",	//elastix installation directory
@@ -526,7 +557,7 @@ function RegAndTraf(Elastix_dir, param_file, MovImg, MovData, TrgImg, wdir, outd
 	File.delete(MovData);
 	File.delete(MovImg);
 	File.delete(TrgImg);
-	File.copy(wdir + "TransformParameters.0.txt", outdir + File.getNameWithoutExtension(filename) + "_trafo.txt");
+	File.copy(wdir + "TransformParameters.0.txt", outdir + IJ.pad(a, 4) + "_Scene_" + b + "_trafo.txt");
 	File.delete(wdir + "TransformParameters.0.txt");
 
 	// Return result
@@ -588,10 +619,17 @@ function GenerateMask(MaskedImage, N_Smooth){
 	// A bit of morphological post-processing is applied, based on the parameter <N_Smooth>.
 	// High N-> lot of smoothing, low N -> less smoothing
 
-	// Binarize
+	// Preprocess
 	selectWindow(MaskedImage);
-	run("Gaussian Blur...", "sigma=3");
-	setAutoThreshold("Default dark");
+	run("Median...", "radius=4");
+
+	// Restrict thresholding to non-zero area of image
+	setThreshold(1,1E30);
+	run("Create Selection");
+	run("Enlarge...", "enlarge=-3 pixel");
+	resetThreshold();	
+	
+	setAutoThreshold("Huang dark");	
 	run("Convert to Mask");
 	
 	// Smooth
