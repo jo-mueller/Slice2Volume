@@ -149,7 +149,7 @@ function main(){
 	Interpolated_Output = Interpolate_Stack(Output_Stack, boundaries);
 	
 	// Apply Symmetry guard
-	//Interpolated_Output = SymmetryGuard_Apply(Interpolated_Output, symmetry_guard_axis);
+	Interpolated_Output = SymmetryGuard_Apply(Interpolated_Output, symmetry_guard_axis);
 	Output_Stack = SymmetryGuard_Apply(Output_Stack, symmetry_guard_axis);
 
 	// Save Output
@@ -180,8 +180,13 @@ function SymmetryGuard_Apply(Image, axis){
 	}
 	close(Image);
 
-	// Apply rotation to resliced image
-	run("Rotate... ", "angle=" + d2s(Correction_Angle, 2) + " grid=1 interpolation=None fill stack");
+	selectWindow(vol);
+	// Apply rotation to resliced image	
+	if (Correction_Angle >= 0) {
+		run("Rotate... ", "angle=-" + Correction_Angle + " grid=1 interpolation=None fill stack");	
+	} else {
+		run("Rotate... ", "angle=" + Correction_Angle + " grid=1 interpolation=None fill stack");	
+	}
 
 	// return to original axis configuration
 	if (axis == "Y-Axis") {
@@ -557,7 +562,7 @@ function RegAndTraf(Elastix_dir, param_file, MovImg, MovData, TrgImg, wdir, outd
 	File.delete(MovData);
 	File.delete(MovImg);
 	File.delete(TrgImg);
-	File.copy(wdir + "TransformParameters.0.txt", outdir + IJ.pad(a, 4) + "_Scene_" + b + "_trafo.txt");
+	File.copy(wdir + "TransformParameters.0.txt", wdir + IJ.pad(a, 4) + "_Scene_" + b + "_trafo.txt");
 	File.delete(wdir + "TransformParameters.0.txt");
 
 	// Return result
@@ -677,7 +682,16 @@ function Open2DImage(fname, Vol) {
 									"Proceed with downsampled image?");
 		// If desired, adjust settings for downsampling in all following images
 		if (DoDownsampling) {
-			DownSamplingFactor = 0.5*w/w_i;
+
+			// get a copy of bounding retangle in volume mask to estimate difference in size
+			selectWindow(Vol);
+			run("Duplicate...", "title=Temp");
+			selectWindow("Temp");
+			run("Select Bounding Box");
+			Roi.getBounds(x, y, width, height);
+			close("Temp");
+		
+			DownSamplingFactor = 0.25*width/w_i;
 		}
 		InputSizeChecked = true;
 	}
@@ -685,7 +699,7 @@ function Open2DImage(fname, Vol) {
 	// Downsample if the option was set
 	selectWindow(image);
 	if (DownSamplingFactor < 1.0) {
-		print("    INFO: Downsampling by factor " + d2s(DownSamplingFactor,3));
+		print("    INFO: Downsampling by factor " + d2s(DownSamplingFactor,5));
 		run("downsample ", "width=" + floor(w_i * DownSamplingFactor) + " height=" + floor(h_i * DownSamplingFactor) + " source=0.50 target=0.50");	
 	} else {
 		print("    INFO: DownSampling not necessary");

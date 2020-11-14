@@ -7,8 +7,8 @@
 (FinalGridSpacingInVoxels 8 8 8)
 
 (Registration "MultiResolutionRegistration")
-(NumberOfResolutions 5)
-(FixedImagePyramidSchedule 56 56 16 16 8 8 2 2 1 1)
+(NumberOfResolutions 4)
+(FixedImagePyramidSchedule 16 16 8 8 2 2 1 1)
 
 // Generation of smoothed representation of input images?
 (FixedImagePyramid "FixedSmoothingImagePyramid" )
@@ -16,7 +16,7 @@
 
 // Initial transformation
 (AutomaticTransformInitialization "true")
-(AutomaticTransformInitializationMethod "GeometricCenter")
+(AutomaticTransformInitializationMethod "CenterOfGravity")
 (AutomaticScalesEstimation "true")
 
 // How to spread the sample points in the images
