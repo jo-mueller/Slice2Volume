@@ -67,8 +67,11 @@ Example:
 #### Sample orientation
 As you can see in the previous figure and the figure on the top, the histological images and the target volume do not necessarily have the same orientation. This can be corrected in the S2V GUI. Also, the 
 
+#### Multi-channel images
+S2V can handle the input of histological images with multiple color channels (H&E, immmunofluorescent stainings, etc), but it's not tested extensively. To be really safe, it's advised to take one of your stainings where the brain coontour is clearly visible (e.g. DAPI) and store it as a separate image. 
+
 ### Usage
-Now tell us already how to use it! Ok ok...here we go. This is the GUI:
+Now tell us already how to use it! Ok ok...here we go. First download the repository, open the file "Slice2Volume.ijm" in Fiji and click "Run". You'll see this GUI:
 |<img src="./imgs/GUI.jpg" alt="" width="500"/>	|
 |----|
 |Slice2Volume user interface in Fiji|
