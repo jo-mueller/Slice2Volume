@@ -55,7 +55,7 @@ S2V requires a certain file-naming convention with regard to the histological im
 |    |0002_Scene_1|my_subdirectory|my_image.tif|
 
 Example:
-|<img src="./imgs/screenshot_objectcarrier.jpg.jpg" alt="" width="200"/>	|
+|<img src="./imgs/screenshot_objectcarrier.jpg" alt="" width="200"/>	|
 |----|
 |Object carrier image|
 
