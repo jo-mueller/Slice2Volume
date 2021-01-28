@@ -47,7 +47,7 @@ This free software is needed to execute the scripts. [Download link](www.imagej.
 * Elastix:
 Necessary to run the registration. [Download link](elastix.isi.uu.nl)
 
-### 3. Usage notes
+### 3. Data requisites
 
 #### File structure
 S2V requires a certain file-naming convention with regard to the histological images as it is written for data obtained with slide-scanners. The numbering convention is XXXX_Scene_Y, where XXXX refers to the index of the coverslip object carrier, Y reffers to the index of the index of the sample of the object carrier
@@ -67,4 +67,8 @@ Example:
 #### Sample orientation
 As you can see in the previous figure and the figure on the top, the histological images and the target volume do not necessarily have the same orientation. This can be corrected in the S2V GUI. Also, the 
 
-### 4. Script input
+### Usage
+Now tell us already how to use it! Ok ok...here we go. This is the GUI:
+|<img src="./imgs/CT_vs_Atlas.jpg" alt="" width="200"/>	|
+|----|
+|Slice2Volume user interface in Fiji|
