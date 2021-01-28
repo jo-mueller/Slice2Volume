@@ -1,14 +1,14 @@
 // Registration type and runtime parameters
 (Transform "AffineTransform")
-(MaximumNumberOfIterations 2000)
-(NumberOfSpatialSamples 20000)
+(MaximumNumberOfIterations 800)
+(NumberOfSpatialSamples 30000)
 (CheckNumberOfSamples "false" )
 
+// Multiresolution strategy
 (FinalGridSpacingInVoxels 8 8 8)
-
 (Registration "MultiResolutionRegistration")
-(NumberOfResolutions 4)
-(FixedImagePyramidSchedule 16 16 8 8 2 2 1 1)
+(NumberOfResolutions 5)
+(FixedImagePyramidSchedule 32 32 16 16 8 8 2 2 1 1)
 
 // Generation of smoothed representation of input images?
 (FixedImagePyramid "FixedSmoothingImagePyramid" )
@@ -30,7 +30,7 @@
 // Not needed if you're only interested in the result
 (WriteTransformParametersEachIteration "false")
 (WriteTransformParametersEachResolution "false")
-(WriteResultImageAfterEachResolution "true")
+(WriteResultImageAfterEachResolution "false")
 (WritePyramidImagesAfterEachResolution "false")
 
 // Pixel types of output image data.
@@ -38,7 +38,7 @@
 // Will lead to weird output if you co-align unsigned int, but transform float images
 (FixedInternalImagePixelType "float")
 (MovingInternalImagePixelType "float")
-(UseDirectionCosines "false")
+(UseDirectionCosines "true")
 
 // About interpolation of involved images.
 // Set ResampleInterpolator to NearestNeighbour for Atlas registration 

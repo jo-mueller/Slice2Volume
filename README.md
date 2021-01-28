@@ -1,6 +1,10 @@
 # Slice2Volume
 Script that registers Histology slices to volumetric image data with Elastix registration tool.
 
+![Overlay of co-aligned brain Atlas and DAPI-staining](Doc/Images/imgs/Atlas_vs_DAPI.jpg)
+![Overlay of co-aligned mouse CT and brain atlas](Doc/Images/imgs/CT_vs_Atlas.jpg)
+![Overlay of co-aligned brain CT and DAPI staining](Doc/Images/imgs/CT_vs_DAPI.jpg)
+
 ### 1. Description
 
 Reconstructing 3-dimensional volumes from single histological slices features the inevitable "banana problem". Aligning histological slices with a pre-defined volumetric image (CT, Atlas, etc) circumvents this problem.

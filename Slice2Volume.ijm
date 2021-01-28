@@ -1,3 +1,8 @@
+/*
+ * Author: Johannes Müller, johannes.mueller@ukdd.de
+ * LICENSE
+ */
+
 //clean up
 close("*");
 if (isOpen("Progress")) {
@@ -45,12 +50,16 @@ if (use_batch) {
 // Global Variables
 var InputFormatChecked = false;		// flag for the dimensionality check of the 2D input data
 var InputSizeChecked = false;		// flag for the image size check of the 2D input data
-var DownSamplingFactor = 1.0;
+
+var DownSamplingFactor = 1.0;		// Downsampling factor for further use
+var Width_Large = 0.0;				// Keep quotients that define downsampling factor to be safe
+var Width_Small = 0.0;				// DownSamplingFactor := Width_Small/Width_Large
+
 var MaskSlice = 1;					// Default value for 2D slice to be masked
 var DataSlice = 1;					// Default value for 2D slice to be transformed
 var Correction_Angle = 0;			// Correctional angle to make volume symmetric along a defined axis. 
 
-var OverviewTable = "OverviewTable"; 
+var OverviewTable = "OverviewTable"; // Log box that lists the assignment of each 2D plane in the 3D volume
 
 //================================== MAIN =====================
 
@@ -95,14 +104,6 @@ function main(){
 		// Start timer
 		t0 = getTime();
 
-		// open 2D image and split into mask and data
-		Open2DImage(ListOfImages[i], Volume);
-		MovingMask = "MovingMask";
-		MovingData = "MovingData";
-
-		
-		MovingMask = GenerateMask(MovingMask, n_smoothing_hist);
-
 		// Find corresponding slice in Volume based on filename
 		depth = findLocationInVol(	ListOfImages[i],	// currently processed image
 									Volume,				// Target volume
@@ -112,6 +113,13 @@ function main(){
 									2,					// number of samples per carrier
 									d_slice,			// slice distance of histological sections
 									d_Volume);			// slice distance of volumetric image
+		
+		// open 2D image and split into mask and data
+		Open2DImage(ListOfImages[i], Volume);
+		MovingMask = "MovingMask";
+		MovingData = "MovingData";		
+		MovingMask = GenerateMask(MovingMask, n_smoothing_hist);
+
 		TargetMask = "TargetMask";
 
 		// Save all images to trafo dir
@@ -340,35 +348,37 @@ function SaveOutput(V, V_int, outdir){
 		name_int += "_" + ID_string;
 	}
 
-	 selectWindow(V);
-	 saveAs(".tif", outdir + name_raw);
+	selectWindow(V);
+	saveAs(".tif", outdir + name_raw);
+	
+	selectWindow(V_int);
+	saveAs(".tif", outdir + name_raw);
+	saveAs(".tif", outdir + name_int);
+	
+	selectWindow("OverviewTable");
+	saveAs("Text", outdir + "SliceAssignment_Overview");
+	
+	f = File.open(outdir + "S2V_LogFile.txt");
+	
+	print(f, "Input data:");
+	print(f, "Input Volume:\t" + TrgVolume);
+	print(f, "Microscopy input:\t" + dir_2D);
+	print(f, "Subdir specification:\t" + subdir_path);
+	print(f, "ID string:\t" + ID_string);
+	
+	print(f, "\nGeometric Parameters:");
+	print(f, "Cut distance:\t" + d_slice);
+	print(f, "Volume slice distance:\t" + d_Volume);
+	print(f, "Discarded tissue:\t" + shift);
 
-	 selectWindow(V_int);
-	 saveAs(".tif", outdir + name_raw);
-	 saveAs(".tif", outdir + name_int);
-
-	 selectWindow("OverviewTable");
-	 saveAs("Text", outdir + "SliceAssignment_Overview");
-
-	 f = File.open(outdir + "S2V_LogFile.txt");
-	 
-	 print(f, "Input data:");
-	 print(f, "Input Volume\t" + TrgVolume);
-	 print(f, "Microscopy input\t" + dir_2D);
-	 print(f, "Subdir specification\t" + subdir_path);
-	 print(f, "ID string\t" + ID_string);
-
-	 print(f, "Parameters:");
-	 print(f, "Cut distance\t" + d_slice);
-	 print(f, "Volume slice distance\t" + d_Volume);
-	 print(f, "Discarded tissue\t" + shift);
-
-	print(f, "Processing parameters:");
+	print(f, "\nProcessing parameters:");
 	print(f, "Histological outline smoothing:\t" + n_smoothing_hist);
 	print(f, "Volumetric outline smoothing:\t" + n_smoothing_vol);
 	print(f, "Initial rotation:\t" + init_rotation);
+	print(f, "Downsampling factor:\t" + DownSamplingFactor + "\t" + Width_Small + "\t" + Width_Large);
 	print(f, "Exluded fields from volume:\t" + exclude_labels);
-	print(f, "Correction angle:\t" + Correction_Angle + " degree along " + symmetry_guard_axis); 
+	print(f, "Correction angle:\t" + Correction_Angle); 
+	print(f, "Correction axis:\t" + symmetry_guard_axis); 
 	close(f);	 
 }
 
@@ -532,7 +542,6 @@ function RegAndTraf(Elastix_dir, param_file, MovImg, MovData, TrgImg, wdir, outd
 	filestring = replace(MovData, File.separator, "/");
 	filestring = replace(filestring, ".tif", "_tif");
 	filestring = replace(filestring, "-|/" , "_");
-	print(filestring);
 
 	filestring = split(filestring, "_");
 	for (i = 0; i < filestring.length; i++) {
@@ -541,9 +550,7 @@ function RegAndTraf(Elastix_dir, param_file, MovImg, MovData, TrgImg, wdir, outd
 			b = parseInt(filestring[i + 1]);
 			break;
 		}
-	}
-
-	
+	}	
 	
 	 // First, call elastix
 	exec(Elastix_dir + "\\elastix.exe",	//elastix installation directory
@@ -558,17 +565,61 @@ function RegAndTraf(Elastix_dir, param_file, MovImg, MovData, TrgImg, wdir, outd
 		"-out", wdir, 	//set output directory
 		"-tp", wdir + "TransformParameters.0.txt");	//directory of elastix parameters used for the transformation
 
-	// Third, clean up
-	File.delete(MovData);
-	File.delete(MovImg);
-	File.delete(TrgImg);
-	File.copy(wdir + "TransformParameters.0.txt", wdir + IJ.pad(a, 4) + "_Scene_" + b + "_trafo.txt");
+	// Save transformation file
+	trafofile = wdir + IJ.pad(a, 4) + "_Scene_" + b + "_trafo.txt";
+	trafofile_inv = wdir + IJ.pad(a, 4) + "_Scene_" + b + "_trafo_inverse.txt";
+	File.copy(wdir + "TransformParameters.0.txt", trafofile);
 	File.delete(wdir + "TransformParameters.0.txt");
+
+	// Get inverse transformation by attempting to undo determined transformation with elastix
+	// The inverse registration parameter file is stored in the same dir as the elastix parameters
+	param_file_inv = File.getDirectory(param_file) + "invRegParameters.txt";
+	exec(Elastix_dir + "\\elastix.exe",	// elastix installation directory
+		"-f", MovData, 	// Fixed image = Moving image
+		"-m", MovData, 	// Fixed image = Moving image
+		"-out", wdir, 	// set output directory
+		"-t0", trafofile, // previously determined trafo as initial trafo
+		"-p", param_file_inv);	//directory of elastix parameters used for the transformation
+
+	// Alter inverse trafofile so that it works properly:
+	// First read original trafofile and generate (empty) copy
+	lines = File.openAsString(wdir + "TransformParameters.0.txt");
+	lines =  split(lines, "\n");
+	f = File.open(trafofile_inv);
+
+	// copy original trafofile line by line
+	for (i = 0; i < lines.length; i++) {
+		// replace initial transform with none
+		if (matches(lines[i], ".*InitialTransform.*")) {
+			print(f, "(InitialTransformParametersFileName \"NoInitialTransform\")");
+			continue;
+		}
+
+		// copy other lines as they are
+		print(f, lines[i]);
+	}
+	File.close(f);
+	File.delete(wdir + "TransformParameters.0.txt");
+
+	// Clean up a bit
+	//File.copy(wdir + "TransformParameters.0.txt", trafofile_inv);  // rename inverse trafo
+	File.delete(wdir + "elastix.log");
+	File.delete(wdir + "transformix.log");
+	files = getFileList(wdir);
+	for (i = 0; i < files.length; i++) {
+		if (matches(files[i], ".*IterationInfo.*")) {
+			File.delete(wdir + files[i]);
+		}
+	}
+	//File.delete(MovData);
+	//File.delete(MovImg);
+	//File.delete(TrgImg);	
 
 	// Return result
 	open(wdir + "result.tif");
 	image = getTitle();
 	return image;
+
 	
 }
 
@@ -586,7 +637,6 @@ function findLocationInVol(filename, Vol, OutStack, Vol_bounds, DistFromTop, Sam
 	filestring = replace(filename, File.separator, "/");
 	filestring = replace(filestring, ".tif", "_tif");
 	filestring = replace(filestring, "-|/" , "_");
-	print(filestring);
 
 	filestring = split(filestring, "_");
 	for (i = 0; i < filestring.length; i++) {
@@ -657,7 +707,17 @@ function Open2DImage(fname, Vol) {
 	image = getTitle();
 
 	// Apply initial rotation if option was set
-	run("Rotate... ", "angle=" + init_rotation + " grid=1 interpolation=Bilinear stack");
+	// Decompose into rotations of 90 degree
+	n_rotations = round(init_rotation/90.0);
+	
+	for (i = 0; i < abs(n_rotations); i++) {
+		if (n_rotations >0) {
+			run("Rotate 90 Degrees Right");
+		}
+		if (n_rotations <0) {
+			run("Rotate 90 Degrees Left");
+		}
+	}
 
 	// first, check if images has mutiple layers. If so, user has to choose, which is maskable and which should be transformed
 	if (nSlices > 1 && (InputFormatChecked == false)) {
@@ -690,8 +750,11 @@ function Open2DImage(fname, Vol) {
 			run("Select Bounding Box");
 			Roi.getBounds(x, y, width, height);
 			close("Temp");
-		
-			DownSamplingFactor = 0.25*width/w_i;
+
+			// Set Downsampling parameters for further use and log
+			DownSamplingFactor = width/w_i;
+			Width_Large = w_i;
+			Width_Small = width;
 		}
 		InputSizeChecked = true;
 	}
@@ -829,6 +892,14 @@ function LoadAndSegmentAtlas(filename, excl_labels, n_smooth){
 		// if a range of labels is given
 		if (matches(excl_labels[i], ".*-.*")) {
 			substr = split(excl_labels[i], "-");
+
+			// convert label range to numbers and sort
+			for (j = 0; j < substr.length; j++) {
+				substr[j] = parseInt(substr[j]);
+			}
+			substr = Array.sort(substr);
+
+			// Now add all numbers in specified range to list of labels
 			for (j = parseInt(substr[0]); j <= parseInt(substr[1]); j++) {
 				labels = Array.concat(labels, j);
 			}
