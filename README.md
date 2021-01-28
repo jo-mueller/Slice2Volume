@@ -8,7 +8,7 @@ Slice2Volume (S2V) is a script/wrapper that registers Histology slices of arbitr
 ### 1. Description
 
 Reconstructing 3-dimensional volumes from single histological slices features the inevitable "banana problem". Aligning histological slices with a pre-defined volumetric image (CT, Atlas, etc) circumvents this problem.
-The volumetric image serves as ground truth volume image (target image), the histological images are transformed according to binary masks of each slice. 
+The volumetric image serves as ground truth volume image (target image), the histological images are transformed with a contour based approach.
 
 
 ### 2. Installations
