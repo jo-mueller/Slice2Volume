@@ -88,7 +88,16 @@ I tried to make the script as versatile to different file structures and input d
 * Exclude values/labels from Volume: if you want to remove particular labels (e.g. bulbus) from the volume image, list the corresponding values here, separated with a comma (100,101,102) or with a dash (101, 102, 110 - 120, 130, etc) 
 * Initial input rotation: If, as shown above, the histological image has a different orientation than the atlas, you can either rotate the atlas or specify a degree (ideally multiple of 90) to rotate the histological image before registration 
 * Batch mode off: See what's happening!
-* Symmetry correction: This is relevant if, for instance your atlas was previously warped to match another data source (MRI, CT, etc). In that case, the atlas may be tilted (see figure below). The registration goes through the volume stack from slice to slice, it is assumed that the orientations match. If the atlas is tilted, this will not work any more. The symmetry correction provides a way out.
-|<img src="./imgs/Symm_correction_necessary.jpg" alt="" width="300"/>	|<img src="./imgs/Symm_correction_directions.jpg" alt="" width="300"/>	|
-|----|----|
-|Axial overlay of atlas and a CT: This atlas requires a symmetry correction.|Symmetry correction directions with respect to the plane orientation in the volumetric input|
+* Symmetry correction: This is relevant if, for instance your atlas was previously warped to match another data source (MRI, CT, etc). In that case, the atlas may be tilted (see figure below). The registration goes through the volume stack from slice to slice, it is assumed that the orientations match. If the atlas is tilted as shown below, this will not work any more. The symmetry correction provides a way out by rotating the atlas round the specified axis, until it is horizontally symmetrical. 
+
+|<img src="./imgs/Symm_correction_necessary.jpg" alt="" height="300"/>	|<img src="./imgs/Symm_correction_directions.jpg" alt="" height="300"/>	|
+|------|------|
+|Axial overlay of atlas and a CT: This atlas requires a symmetry correction. | Symmetry correction directions with respect to the plane orientation in the volumetric input|
+
+### 4. Errors and Issues
+S2V has not been tested extensively so if you find any issues, feel free to drop a message or open an issue :)
+
+### 4. Citation
+If you use S2V for a publication, please cite the following paper:
+Suckert, et al. "High-precision image-guided proton irradiation of mouse brain sub-volumes." Radiotherapy and Oncology 146 (2020): 205-212.
+
