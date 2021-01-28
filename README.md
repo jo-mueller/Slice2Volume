@@ -1,5 +1,3 @@
-figs <- captioner(prefix="Figure")
-
 # Slice2Volume
 Script that registers Histology slices to volumetric image data with Elastix registration tool.
 ![Overlay of co-aligned brain Atlas and DAPI-staining, 20%](/imgs/CT_vs_Atlas.jpg#CT_vs_Atlas)
