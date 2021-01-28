@@ -27,6 +27,11 @@ In short, the workflow follows the following steps:
 The output of S2V is as follows:
 1. Downsampled and interpolated volumetric image of the transformed histological slices (see above)
 2. Slice Assignment overview: Txt-File that lists the pairs of histological tissue sections (filename) and its corresponding slice in the volumetric image
+    |Number|	File|	Depth|	Assigned slice|
+    |-----|----|----|-----|
+    |1|	\Data\Slices\0001_Scene_1/result/transformed_DAPI_r.tif|	500microns|	77|
+    |2|	\Data\Slices\0001_Scene_2/result/DAPI_r.tif|	600microns|	78|
+    |3|	\Data\Slices\0002_Scene_1/result/DAPI_r.tif|	800microns|	80|
 3. (Inverse) Transformations: Transformix-readable transformation files that contain
     * the forward transformation: Will transform histological images into the coordinate system of the volumetric image
     * the backward transformation: transforms the selected slices (see slice assignment) into the coordinate system of the histological image.
