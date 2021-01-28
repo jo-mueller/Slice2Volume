@@ -72,3 +72,23 @@ Now tell us already how to use it! Ok ok...here we go. This is the GUI:
 |<img src="./imgs/GUI.jpg" alt="" width="500"/>	|
 |----|
 |Slice2Volume user interface in Fiji|
+
+I tried to make the script as versatile to different file structures and input data, but there are some necessary parameters to set:
+* Elastix parameter file: This should be set to the file "elastix_parameters.txt" in the repository. 
+* Elastix installation directory: Should be set to the directory tht contains elastix.exe and transformix.exe
+* Microscopy input: This should be the root directory that contains all the separate slice data (root in the above example) 
+* Target volume input: Path to the volumetric brain atlas file (e.g. DSURQE atlas) 
+* Subdirectory structure: If your slice data has subdirectories (e.g. my_subdirectory in the bove example), put "my_subdirectory/" here. 
+* Filename ID string: You may have other files in our slice directory; give a string here that identifies the image you would like to register (e.g. "my_image.tif" in the above example) 
+* Distance between subsequent sections (microns): How far apart are your tissue sections?
+* Target volume voxel size? (microns): Should be isotropic, for DSURQE it's 40microns. 
+* Discarded tissue (microns): How much tissue was cut away from the sample until the sample 0000_Scene_1 was collected? 
+* Histo outline smoothing degree: The higher this number, the smoother, the lower the more ragged the contour of the histological image will look. 
+* Volume outline smoothing degree: Same as above, just for the volume image. 
+* Exclude values/labels from Volume: if you want to remove particular labels (e.g. bulbus) from the volume image, list the corresponding values here, separated with a comma (100,101,102) or with a dash (101, 102, 110 - 120, 130, etc) 
+* Initial input rotation: If, as shown above, the histological image has a different orientation than the atlas, you can either rotate the atlas or specify a degree (ideally multiple of 90) to rotate the histological image before registration 
+* Batch mode off: See what's happening!
+* Symmetry correction: This is relevant if, for instance your atlas was previously warped to match another data source (MRI, CT, etc). In that case, the atlas may be tilted (see figure below). The registration goes through the volume stack from slice to slice, it is assumed that the orientations match. If the atlas is tilted, this will not work any more. The symmetry correction provides a way out.
+|<img src="./imgs/Symm_correction_necessary.jpg" alt="" width="300"/>	|<img src="./imgs/Symm_correction_directions.jpg" alt="" width="300"/>	|
+|----|----|
+|Axial overlay of atlas and a CT: This atlas requires a symmetry correction.|Symmetry correction directions with respect to the plane orientation in the volumetric input|
