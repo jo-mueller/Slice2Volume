@@ -55,8 +55,11 @@ S2V requires a certain file-naming convention with regard to the histological im
 |    |0002_Scene_1|my_subdirectory|my_image.tif|
 
 Example:
-|<img src="./imgs/screenshot_objectcarrier.jpg" alt="" width="200"/>	|
+|<img src="./imgs/screenshot_objectcarrier.jpg" alt="" width="400"/>	|
 |----|
 |Object carrier image|
+
+#### Sample orientation
+As you can see in the previous figure and the figure on the top, the histological images and the target volume do not necessarily have the same orientation. This can be corrected in the S2V GUI. Also, the 
 
 ### 4. Script input
