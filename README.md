@@ -69,6 +69,6 @@ As you can see in the previous figure and the figure on the top, the histologica
 
 ### Usage
 Now tell us already how to use it! Ok ok...here we go. This is the GUI:
-|<img src="./imgs/GUI.jpg" alt="" width="200"/>	|
+|<img src="./imgs/GUI.jpg" alt="" width="500"/>	|
 |----|
 |Slice2Volume user interface in Fiji|
