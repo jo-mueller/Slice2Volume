@@ -1,8 +1,9 @@
 # Slice2Volume
 Slice2Volume (S2V) is a script/wrapper that registers Histology slices of arbitrary resolutions to volumetric image data with Elastix registration tool.
 
-|<img src="./imgs/CT_vs_Atlas.jpg" alt="" width="200"/>	|<img src="./imgs/CT_vs_DAPI.jpg" alt="" width="200"/>	|<img src="./imgs/Atlas_vs_DAPI.jpg" alt="Overlay of co-aligned brain Atlas and DAPI-staining" width="200"/>|
-|Overlay of co-aligned CT scan and brain atlas-staining	|Overlay of co-aligned CT scan and DAPI-staining		|Overlay of co-aligned brain Atlas and DAPI-staining|
+|<img src="./imgs/CT_vs_Atlas.jpg" alt="" width="200"/>	| <img src="./imgs/CT_vs_DAPI.jpg" alt="" width="200"/>	| <img src="./imgs/Atlas_vs_DAPI.jpg" alt="Overlay of co-aligned brain Atlas and DAPI-staining" width="200"/> |
+| --- | --- | --- |
+| Overlay of co-aligned CT scan and brain atlas-staining	| Overlay of co-aligned CT scan and DAPI-staining		| Overlay of co-aligned brain Atlas and DAPI-staining |
 
 ### 1. Description
 
