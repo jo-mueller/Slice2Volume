@@ -155,6 +155,7 @@ function main(){
 	
 	// Post-process: Interpolate missing slices
 	Interpolated_Output = Interpolate_Stack(Output_Stack, boundaries);
+
 	
 	// Apply Symmetry guard
 	Interpolated_Output = SymmetryGuard_Apply(Interpolated_Output, symmetry_guard_axis);
@@ -171,13 +172,14 @@ function SymmetryGuard_Apply(Image, axis){
 	 * Applies a previously determined correction rotation along a defined <axis>
 	 * to the given input Volume <Image>
 	 */
-
+	print(Image);
 	// First test if symmetry guard was activated at all
 	if (axis == "None") {
 		return Image;
 	}
 
 	selectWindow(Image);
+	
 	if (axis == "Y-Axis") {
 		run("Reslice [/]...", "output=1.000 start=Top");
 		vol = getTitle();
