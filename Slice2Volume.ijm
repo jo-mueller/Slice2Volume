@@ -117,7 +117,7 @@ function main(){
 		// open 2D image and split into mask and data
 		Open2DImage(ListOfImages[i], Volume);
 		MovingMask = "MovingMask";
-		MovingData = "MovingData";		
+		MovingData = "MovingData";
 		MovingMask = GenerateMask(MovingMask, n_smoothing_hist);
 
 		TargetMask = "TargetMask";
@@ -157,8 +157,10 @@ function main(){
 	Interpolated_Output = Interpolate_Stack(Output_Stack, boundaries);
 	
 	// Apply Symmetry guard
-	Interpolated_Output = SymmetryGuard_Apply(Interpolated_Output, symmetry_guard_axis);
-	Output_Stack = SymmetryGuard_Apply(Output_Stack, symmetry_guard_axis);
+	if (symmetry_guard_axis != "None") {
+		Interpolated_Output = SymmetryGuard_Apply(Interpolated_Output, symmetry_guard_axis);
+		Output_Stack = SymmetryGuard_Apply(Output_Stack, symmetry_guard_axis);
+	}
 
 	// Save Output
 	SaveOutput(Output_Stack, Interpolated_Output, dir_res);
@@ -166,27 +168,23 @@ function main(){
 
 //================================== FUNCTIONS =====================
 
-function SymmetryGuard_Apply(Image, axis){
+function SymmetryGuard_Apply(image, axis){
 	/*
 	 * Applies a previously determined correction rotation along a defined <axis>
-	 * to the given input Volume <Image>
+	 * to the given input Volume <Image>.
 	 */
 
-	// First test if symmetry guard was activated at all
-	if (axis == "None") {
-		return Image;
-	}
-
-	selectWindow(Image);
+	selectWindow(image);
 	if (axis == "Y-Axis") {
-		run("Reslice [/]...", "output=1.000 start=Top");
+		run("Reslice [/]...", "start=Top");
 		vol = getTitle();
 	}
+	
 	if (axis == "X-Axis") {
 		run("Reslice [/]...", "output=1.000 start=Left");
 		vol = getTitle();
 	}
-	close(Image);
+	close(image);
 
 	selectWindow(vol);
 	// Apply rotation to resliced image	
@@ -207,8 +205,8 @@ function SymmetryGuard_Apply(Image, axis){
 	}
 	close(vol);
 	selectWindow(output);
-	rename(Image);
-	return Image;
+	rename(image);
+	return image;
 }
 
 function SymmetryGuard_Detect(Volume, axis){
@@ -532,6 +530,7 @@ function RegAndTraf(Elastix_dir, param_file, MovImg, MovData, TrgImg, wdir, outd
 	 * returns: image handle to transformed image
 	 */
 
+	wait(1000);
 	print("    INFO: Moving image = " + MovImg);
 	print("    INFO: Target image = " + TrgImg);
 	TrgImg += ".tif";
@@ -768,10 +767,13 @@ function Open2DImage(fname, Vol) {
 		print("    INFO: DownSampling not necessary");
 	}
 
-	// Now, get the correct image and split into Mask Slice and Data Slice	
+	// Now, get the correct image and split into Mask Slice and Data Slice
+	selectWindow(image);
 	run("Duplicate...", "title=MovingMask duplicate channels=" + MaskSlice + "-" + MaskSlice);
+	wait(200);
 	selectWindow(image);
 	run("Duplicate...", "title=MovingData duplicate channels=" + DataSlice + "-" + DataSlice);
+	wait(200);
 	selectWindow(image);
 	close();
 
