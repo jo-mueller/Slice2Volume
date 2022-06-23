@@ -1,14 +1,15 @@
 // Registration type and runtime parameters
 (Transform "AffineTransform")
-(MaximumNumberOfIterations 800)
-(NumberOfSpatialSamples 30000)
+(MaximumNumberOfIterations 2000)
+(NumberOfSpatialSamples 10000)
 (CheckNumberOfSamples "false" )
 
 // Multiresolution strategy
-(FinalGridSpacingInVoxels 8 8 8)
+(FinalGridSpacingInVoxels 16 16)
 (Registration "MultiResolutionRegistration")
 (NumberOfResolutions 5)
-(FixedImagePyramidSchedule 32 32 16 16 8 8 2 2 1 1)
+(FixedImagePyramidSchedule 64 64 16 16 8 8 2 2 1 1)
+(MovingImagePyramidSchedule 16 16 16 16 8 8 2 2 1 1)
 
 // Generation of smoothed representation of input images?
 (FixedImagePyramid "FixedSmoothingImagePyramid" )
@@ -26,12 +27,18 @@
 (DefaultPixelValue 0)
 (Optimizer "AdaptiveStochasticGradientDescent")
 
+// Optimizer parameters
+(SP_alpha 10.0)
+(SP_A 50.0)
+(Scales 50000.0)
+
+
 // Control output during registration. 
 // Not needed if you're only interested in the result
 (WriteTransformParametersEachIteration "false")
 (WriteTransformParametersEachResolution "false")
 (WriteResultImageAfterEachResolution "false")
-(WritePyramidImagesAfterEachResolution "false")
+(WritePyramidImagesAfterEachResolution "true")
 
 // Pixel types of output image data.
 // Set to float if your input data are floats
@@ -47,7 +54,7 @@
 (AutomaticParameterEstimation "true")
 
 (Metric "AdvancedMattesMutualInformation" )
-(NumberOfHistogramBins 32)
+(NumberOfHistogramBins 16)
 (HowToCombineTransforms "Compose")
 (ErodeMask "false")
 (WriteResultImage "true")
