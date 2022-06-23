@@ -562,7 +562,6 @@ function RegAndTraf(Elastix_dir, param_file, MovImg, MovData, TrgImg, wdir, outd
 		"-out", wdir, 	//set output directory
 		"-p", param_file);	//directory of elastix parameters used for the transformation
 		
-	exit();
 
 	// Second, call transformix
 	exec(Elastix_dir + "\\transformix.exe",	//elastix installation directory
@@ -702,9 +701,6 @@ function GenerateMask(MaskedImage, N_Smooth){
 function Open2DImage(fname, Vol) {
 	// open 2D image from <fname> and do a couple of checks to provide a correct mask for registration.
 	// For once, layers of the input image are checked and the size of the 2D plane is compared to the <volume> image
-
-	// init factor
-	DownSamplingFactor = 1.0;
 	
 	// look at Volume
 	selectWindow(Vol);
@@ -783,7 +779,7 @@ function Open2DImage(fname, Vol) {
 			Roi.getBounds(x, y, width, height);
 			close("Temp");
 
-			// Set Downsampling parameters for further use and log
+			// Set upscaling parameters for further use and log
 			DownSamplingFactor = width/w_i;
 			Width_Large = w_i;
 			Width_Small = width;
@@ -794,15 +790,17 @@ function Open2DImage(fname, Vol) {
 
 	// Downsample if the option was set
 	selectWindow(image);
-	target_height = floor(h_i * DownSamplingFactor);
-	target_width = floor(w_i * DownSamplingFactor);
 	if (DownSamplingFactor < 1.0) {
 		print("    INFO: Downsampling by factor " + d2s(DownSamplingFactor,5));
+		target_height = floor(h_i * DownSamplingFactor);
+		target_width = floor(w_i * DownSamplingFactor);
 		run("downsample ", "width=" + target_width + " height=" + target_height + " source=0.50 target=0.50");	
 	}
 	
 	if (DownSamplingFactor > 1.0) {
 		print("    INFO: Downsampling by factor " + d2s(DownSamplingFactor,5));
+		target_height = floor(2 * h_i * DownSamplingFactor);
+		target_width = floor(2 * w_i * DownSamplingFactor);
 		run("Scale...", "x="+DownSamplingFactor+" y="+DownSamplingFactor+" width="+target_height+" height="+target_width+" interpolation=Bilinear average create");
 		upscaled_image = getTitle();
 		close(image);
