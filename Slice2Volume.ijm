@@ -63,6 +63,7 @@ var OverviewTable = "OverviewTable"; // Log box that lists the assignment of ea
 
 //================================== MAIN =====================
 
+
 function main(){
 
 	// Local Variables
@@ -75,6 +76,9 @@ function main(){
 	outdir = createDirectories(dir_2D, TrgVolume);
 	dir_trafo = outdir + "trafo\\";
 	dir_res = outdir + "results\\";
+	
+	
+	
 
 	// First: Process the volumetric input and make corresponding output image
 	// Also: Put the windows on screen so they're nicely displayed next to each other
@@ -549,7 +553,7 @@ function RegAndTraf(Elastix_dir, param_file, MovImg, MovData, TrgImg, wdir, outd
 			b = parseInt(filestring[i + 1]);
 			break;
 		}
-	}	
+	}
 	
 	 // First, call elastix
 	exec(Elastix_dir + "\\elastix.exe",	//elastix installation directory
@@ -557,6 +561,8 @@ function RegAndTraf(Elastix_dir, param_file, MovImg, MovData, TrgImg, wdir, outd
 		"-m", MovImg, 	//set moving image
 		"-out", wdir, 	//set output directory
 		"-p", param_file);	//directory of elastix parameters used for the transformation
+		
+	exit();
 
 	// Second, call transformix
 	exec(Elastix_dir + "\\transformix.exe",	//elastix installation directory
@@ -697,6 +703,9 @@ function Open2DImage(fname, Vol) {
 	// open 2D image from <fname> and do a couple of checks to provide a correct mask for registration.
 	// For once, layers of the input image are checked and the size of the 2D plane is compared to the <volume> image
 
+	// init factor
+	DownSamplingFactor = 1.0;
+	
 	// look at Volume
 	selectWindow(Vol);
 	w = getWidth();
@@ -736,6 +745,7 @@ function Open2DImage(fname, Vol) {
 	selectWindow(image);
 	w_i = getWidth();
 	h_i = getHeight();
+	// Downsampling necessary?
 	if (!InputSizeChecked && (w_i * h_i > 10* w * h)) {
 		DoDownsampling = getBoolean("The input image ("+d2s(w_i, 0) + "x" + d2s(h_i,0) +") is much larger than the target volume ("+d2s(w, 0) + "x" + d2s(h,0) +").\n"+
 									"Proceed with downsampled image?");
@@ -757,13 +767,49 @@ function Open2DImage(fname, Vol) {
 		}
 		InputSizeChecked = true;
 	}
+	
+	// Upscaling necessary?
+	if (!InputSizeChecked && (w_i * h_i < 0.3* w * h)) {
+		DoDownsampling = getBoolean("The input image ("+d2s(w_i, 0) + "x" + d2s(h_i,0) +") is much smaller than the target volume ("+d2s(w, 0) + "x" + d2s(h,0) +").\n"+
+									"Proceed with upscaled images?");
+		// If desired, adjust settings for downsampling in all following images
+		if (DoDownsampling) {
+
+			// get a copy of bounding retangle in volume mask to estimate difference in size
+			selectWindow(Vol);
+			run("Duplicate...", "title=Temp");
+			selectWindow("Temp");
+			run("Select Bounding Box");
+			Roi.getBounds(x, y, width, height);
+			close("Temp");
+
+			// Set Downsampling parameters for further use and log
+			DownSamplingFactor = width/w_i;
+			Width_Large = w_i;
+			Width_Small = width;
+		}
+		InputSizeChecked = true;
+	}
+
 
 	// Downsample if the option was set
 	selectWindow(image);
+	target_height = floor(h_i * DownSamplingFactor);
+	target_width = floor(w_i * DownSamplingFactor);
 	if (DownSamplingFactor < 1.0) {
 		print("    INFO: Downsampling by factor " + d2s(DownSamplingFactor,5));
-		run("downsample ", "width=" + floor(w_i * DownSamplingFactor) + " height=" + floor(h_i * DownSamplingFactor) + " source=0.50 target=0.50");	
-	} else {
+		run("downsample ", "width=" + target_width + " height=" + target_height + " source=0.50 target=0.50");	
+	}
+	
+	if (DownSamplingFactor > 1.0) {
+		print("    INFO: Downsampling by factor " + d2s(DownSamplingFactor,5));
+		run("Scale...", "x="+DownSamplingFactor+" y="+DownSamplingFactor+" width="+target_height+" height="+target_width+" interpolation=Bilinear average create");
+		upscaled_image = getTitle();
+		close(image);
+		selectWindow(upscaled_image);
+		rename(image);
+	}
+	if (DownSamplingFactor == 1.0){
 		print("    INFO: DownSampling not necessary");
 	}
 
@@ -776,6 +822,7 @@ function Open2DImage(fname, Vol) {
 	wait(200);
 	selectWindow(image);
 	close();
+	
 
 	// return updated flags fr next iterations
 	return newArray(InputFormatChecked, InputSizeChecked, DownSamplingFactor);
