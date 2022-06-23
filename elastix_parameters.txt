@@ -9,7 +9,7 @@
 (Registration "MultiResolutionRegistration")
 (NumberOfResolutions 5)
 (FixedImagePyramidSchedule 64 64 16 16 8 8 2 2 1 1)
-(MovingImagePyramidSchedule 16 16 16 16 8 8 2 2 1 1)
+(MovingImagePyramidSchedule 64 64 16 16 8 8 2 2 1 1)
 
 // Generation of smoothed representation of input images?
 (FixedImagePyramid "FixedSmoothingImagePyramid" )
