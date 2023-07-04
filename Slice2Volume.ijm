@@ -34,6 +34,7 @@ close("Progress");
 #@ Integer (label="Volume outline smoothing degree", value=3) n_smoothing_vol
 #@ String (label="Exclude values/labels from Volume", value = "102, 337-350") exclude_labels
 #@ String (label="Inital input rotation (CW, degrees)", value = "0") init_rotation
+#@ Boolean (label="Left-right flip after rotation?", value=false) do_flip_lr
 #@ Boolean (label = "Batch mode?", value=true) use_batch
 #@ String (label = "Symmetry correction?", choices={"None", "X-Axis", "Y-Axis"}, style="radioButtonHorizontal") symmetry_guard_axis
 
@@ -373,6 +374,7 @@ function SaveOutput(V, V_int, outdir){
 	print(f, "Histological outline smoothing:\t" + n_smoothing_hist);
 	print(f, "Volumetric outline smoothing:\t" + n_smoothing_vol);
 	print(f, "Initial rotation:\t" + init_rotation);
+	print(f, "Left-right flip:\t" + do_flip_lr);
 	print(f, "Downsampling factor:\t" + DownSamplingFactor + "\t" + Width_Small + "\t" + Width_Large);
 	print(f, "Exluded fields from volume:\t" + exclude_labels);
 	print(f, "Correction angle:\t" + Correction_Angle); 
@@ -716,6 +718,10 @@ function Open2DImage(fname, Vol) {
 		if (n_rotations <0) {
 			run("Rotate 90 Degrees Left");
 		}
+	}
+	
+	if  (do_flip_lr == true){
+		run("Flip Horizontally");
 	}
 
 	// first, check if images has mutiple layers. If so, user has to choose, which is maskable and which should be transformed
