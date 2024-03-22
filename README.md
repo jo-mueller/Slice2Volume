@@ -20,7 +20,7 @@ In short, the workflow follows the following steps:
 3. Identifying pairs of masks in volume image (i.e. binarized atlas) and histological masks. This works largely through information which has to be supplied beforehand, such as:
     * Distance (microns) between subsequent tissue cuts
     * Amount of tissue discarded (in microns) until the first section
-    * Pixel spacing in the target volume in microns (example: 40 microns fpor DSURQE brain atlas)
+    * Pixel spacing in the target volume in microns (example: 40 microns for DSURQE brain atlas)
     
 4. Affine registration of these binary mask pairs with Elastix.
 
@@ -50,7 +50,7 @@ Necessary to run the registration. [Download link](elastix.isi.uu.nl)
 ### 3. Data requisites
 
 #### File structure
-S2V requires a certain file-naming convention with regard to the histological images as it is written for data obtained with slide-scanners. The numbering convention is XXXX_Scene_Y, where XXXX refers to the index of the coverslip object carrier, Y reffers to the index of the index of the sample of the object carrier
+S2V requires a certain file-naming convention with regard to the histological images as it is written for data obtained with slide scanners. The numbering convention is XXXX_Scene_Y, where XXXX refers to the index of the coverslip object carrier, Y refers to the index of the sample on the object carrier
 
 |root|0001_Scene_1|my_subdirectory|my_image.tif|
 |----|----|----|----|
@@ -68,7 +68,7 @@ Example:
 As you can see in the previous figure and the figure on the top, the histological images and the target volume do not necessarily have the same orientation. This can be corrected in the S2V GUI. Also, the 
 
 #### Multi-channel images
-S2V can handle the input of histological images with multiple color channels (H&E, immmunofluorescent stainings, etc), but it's not tested extensively. To be really safe, it's advised to take one of your stainings where the brain coontour is clearly visible (e.g. DAPI) and store it as a separate image. 
+S2V can handle the input of histological images with multiple color channels (H&E, immmunofluorescent stainings, etc), but it's not tested extensively. To be really safe, it's advised to take one of your stainings where the brain contour is clearly visible (e.g. DAPI) and store it as a separate image. 
 
 ### Usage
 Now tell us already how to use it! Ok ok...here we go. First download the repository, open the file "Slice2Volume.ijm" in Fiji and click "Run". You'll see this GUI:
@@ -78,20 +78,20 @@ Now tell us already how to use it! Ok ok...here we go. First download the reposi
 
 I tried to make the script as versatile to different file structures and input data, but there are some necessary parameters to set:
 * Elastix parameter file: This should be set to the file "elastix_parameters.txt" in the repository. 
-* Elastix installation directory: Should be set to the directory tht contains elastix.exe and transformix.exe
+* Elastix installation directory: Should be set to the directory that contains elastix.exe and transformix.exe
 * Microscopy input: This should be the root directory that contains all the separate slice data (root in the above example) 
 * Target volume input: Path to the volumetric brain atlas file (e.g. DSURQE atlas) 
-* Subdirectory structure: If your slice data has subdirectories (e.g. my_subdirectory in the bove example), put "my_subdirectory/" here. 
-* Filename ID string: You may have other files in our slice directory; give a string here that identifies the image you would like to register (e.g. "my_image.tif" in the above example) 
+* Subdirectory structure: If your slice data has subdirectories (e.g. my_subdirectory in the above example), put "my_subdirectory/" here. 
+* Filename ID string: You may have other files in your slice directory; give a string here that identifies the image you would like to register (e.g. "my_image.tif" in the above example) 
 * Distance between subsequent sections (microns): How far apart are your tissue sections?
-* Target volume voxel size? (microns): Should be isotropic, for DSURQE it's 40microns. 
+* Target volume voxel size? (microns): Should be isotropic, for DSURQE it's 40 microns. 
 * Discarded tissue (microns): How much tissue was cut away from the sample until the sample 0000_Scene_1 was collected? 
 * Histo outline smoothing degree: The higher this number, the smoother, the lower the more ragged the contour of the histological image will look. 
 * Volume outline smoothing degree: Same as above, just for the volume image. 
-* Exclude values/labels from Volume: if you want to remove particular labels (e.g. bulbus) from the volume image, list the corresponding values here, separated with a comma (100,101,102) or with a dash (101, 102, 110 - 120, 130, etc) 
+* Exclude values/labels from Volume: if you want to remove particular labels (e.g. the olfactory bulb) from the volume image, list the corresponding values here, separated with a comma (100,101,102) or with a dash (101, 102, 110 - 120, 130, etc) 
 * Initial input rotation: If, as shown above, the histological image has a different orientation than the atlas, you can either rotate the atlas or specify a degree (ideally multiple of 90) to rotate the histological image before registration 
 * Batch mode off: See what's happening!
-* Symmetry correction: This is relevant if, for instance your atlas was previously warped to match another data source (MRI, CT, etc). In that case, the atlas may be tilted (see figure below). The registration goes through the volume stack from slice to slice, it is assumed that the orientations match. If the atlas is tilted as shown below, this will not work any more. The symmetry correction provides a way out by rotating the atlas round the specified axis, until it is horizontally symmetrical. 
+* Symmetry correction: This is relevant if, for instance, your atlas was previously warped to match another data source (MRI, CT, etc). In that case, the atlas may be tilted (see figure below). The registration goes through the volume stack from slice to slice, it is assumed that the orientations match. If the atlas is tilted as shown below, this will not work any more. The symmetry correction provides a way out by rotating the atlas round the specified axis, until it is horizontally symmetrical. 
 
 |<img src="./imgs/Symm_correction_necessary.jpg" alt="" height="300"/>	|<img src="./imgs/Symm_correction_directions.jpg" alt="" height="300"/>	|
 |------|------|
@@ -102,5 +102,5 @@ S2V has not been tested extensively so if you find any issues, feel free to drop
 
 ### 4. Citation
 If you use S2V for a publication, please cite the following paper:
-Suckert, et al. "High-precision image-guided proton irradiation of mouse brain sub-volumes." Radiotherapy and Oncology 146 (2020): 205-212.
+Suckert, Müller, Beyreuther et al. "High-precision image-guided proton irradiation of mouse brain sub-volumes." Radiotherapy and Oncology 146 (2020): 205-212.
 
